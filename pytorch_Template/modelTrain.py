@@ -56,17 +56,17 @@ model_save = 'modelSubmit_2.pth'
 
 DEVICE=torch.device("cpu")
 if torch.cuda.is_available():
-        DEVICE=torch.device("cuda:1")
+        DEVICE=torch.device("cuda:0")
 
 
 if __name__ == '__main__':
 
-    file_name1 = '../CIR_1T4R_100UE_2048sample.npy'
+    file_name1 = 'data/Case_1_2_Training.npy'
     print('The current dataset is : %s'%(file_name1))
     CIR = np.load(file_name1)
     trainX = CIR.transpose((2,1,3,0))  #[none, 256, 72, 2]
     
-    file_name2 = '../POS_1T4R_100UE_2048sample.npy'
+    file_name2 = 'data/Case_1_2_Training_Label.npy'
     print('The current dataset is : %s'%(file_name2))
     POS = np.load(file_name2)
     trainY = POS.transpose((1,0)) #[none, 2]
@@ -133,10 +133,11 @@ if __name__ == '__main__':
             print('Model saved!')
             test_avg_min = test_avg
 
-            torch.save(model, model_save)
+            # torch.save(model, model_save)
+            torch.save(model.state_dict(), model_save)
     #torch.save(model model_save)
     #torch.save(model.state_dict(), model_save)
 
-else:
-    print("load torch model")
-    model_ckpt = torch.load(model, model_save)
+# else:
+#     print("load torch model")
+#     model_ckpt = torch.load(model, model_save)

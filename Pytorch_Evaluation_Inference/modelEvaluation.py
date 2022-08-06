@@ -13,17 +13,17 @@ if torch.cuda.is_available():
 
 ##########################
 # Model loading
-model_address = 'modelSubmit_1.pth'
+model_address = './submit_pt/modelSubmit_1.pth'
 model_loaded = torch.load(model_address).to(DEVICE)
 
 ##########################
 # Case 1
-file_name1 = '../CIR_1T4R_Case1_Test.npy'
+file_name1 = '../data/Case_1_2_Training.npy'
 CIR = np.load(file_name1)
 trainX = CIR.transpose((2,1,3,0))  #[none, 256, 72, 2]
 Num = trainX.shape[0]  #Number of samples
 
-file_name2 = '../POS_1T4R_Case1_Test.npy'
+file_name2 = '../data/Case_1_2_Training_Label.npy'
 POS = np.load(file_name2)
 trainY = POS.transpose((1,0))
 
