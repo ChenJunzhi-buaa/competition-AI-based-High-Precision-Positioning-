@@ -23,21 +23,20 @@ class Model_1(nn.Module):
         self.fc_1  = nn.Linear(768*9*5,2)
         
     def forward(self, x, data_format='channels_last'):
+        # x.shape ([bs, 256, 72, 2])
+        x = self.conv1(x) # ([bs, 256, 73, 3])
+        x = self.relu(x)
+        x = self.pool(x) # ([bs, 256, 36, 3])
 
-        x = self.conv1(x)
+        x = self.conv2(x) # ([bs, 512, 37, 4])
         x = self.relu(x)
-        x = self.pool(x)
-        
-        x = self.conv2(x)
+        x = self.pool(x) # ([bs, 512, 18, 4])
+
+        x = self.conv3(x) # ([bs, 768, 19, 5])
         x = self.relu(x)
-        x = self.pool(x)
-        
-        x = self.conv3(x)
-        x = self.relu(x)
-        x = self.pool(x)
+        x = self.pool(x) # ([bs, 768, 9, 5])
         
         x = self.Flatten(x)
-        
         out = self.fc_1(x)
 
         return out
