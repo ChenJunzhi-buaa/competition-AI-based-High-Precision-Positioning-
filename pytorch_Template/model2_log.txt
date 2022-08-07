@@ -1,0 +1,271 @@
+INFO:root:The current dataset is : data/Case_3_Training.npy
+INFO:root:The current dataset is : data/Case_3_Training_Label.npy
+INFO:root:Model_2(
+  (relu): LeakyReLU(negative_slope=0.2, inplace=True)
+  (conv1): Conv2d(256, 256, kernel_size=(2, 2), stride=(1, 1), padding=(1, 1))
+  (conv2): Conv2d(256, 512, kernel_size=(2, 2), stride=(1, 1), padding=(1, 1))
+  (conv3): Conv2d(512, 768, kernel_size=(2, 2), stride=(1, 1), padding=(1, 1))
+  (pool): MaxPool2d(kernel_size=(2, 1), stride=(2, 1), padding=0, dilation=1, ceil_mode=False)
+  (Flatten): Flatten(start_dim=1, end_dim=-1)
+  (fc_1): Linear(in_features=34560, out_features=2, bias=True)
+)
+INFO:root:######################################################################
+INFO:root:标签数据训练出一个最佳模型
+INFO:root:Model saved!
+INFO:root:Epoch : 1/100, Loss: 36.0855, Test: 22.0350, BestTest: 22.0350
+INFO:root:Model saved!
+INFO:root:Epoch : 2/100, Loss: 23.2618, Test: 21.4503, BestTest: 21.4503
+INFO:root:Epoch : 3/100, Loss: 22.3770, Test: 21.6487, BestTest: 21.4503
+INFO:root:Model saved!
+INFO:root:Epoch : 4/100, Loss: 21.7735, Test: 20.7663, BestTest: 20.7663
+INFO:root:Model saved!
+INFO:root:Epoch : 5/100, Loss: 21.1569, Test: 19.7909, BestTest: 19.7909
+INFO:root:Model saved!
+INFO:root:Epoch : 6/100, Loss: 20.3095, Test: 18.6089, BestTest: 18.6089
+INFO:root:Model saved!
+INFO:root:Epoch : 7/100, Loss: 18.1175, Test: 15.1374, BestTest: 15.1374
+INFO:root:Model saved!
+INFO:root:Epoch : 8/100, Loss: 15.2680, Test: 12.7439, BestTest: 12.7439
+INFO:root:Model saved!
+INFO:root:Epoch : 9/100, Loss: 12.4057, Test: 10.4796, BestTest: 10.4796
+INFO:root:Model saved!
+INFO:root:Epoch : 10/100, Loss: 10.0244, Test: 9.8496, BestTest: 9.8496
+INFO:root:Model saved!
+INFO:root:Epoch : 11/100, Loss: 8.2096, Test: 8.9162, BestTest: 8.9162
+INFO:root:Model saved!
+INFO:root:Epoch : 12/100, Loss: 7.2356, Test: 8.1816, BestTest: 8.1816
+INFO:root:Model saved!
+INFO:root:Epoch : 13/100, Loss: 6.3455, Test: 7.5125, BestTest: 7.5125
+INFO:root:Model saved!
+INFO:root:Epoch : 14/100, Loss: 5.7790, Test: 6.7212, BestTest: 6.7212
+INFO:root:Model saved!
+INFO:root:Epoch : 15/100, Loss: 5.4147, Test: 6.5575, BestTest: 6.5575
+INFO:root:Model saved!
+INFO:root:Epoch : 16/100, Loss: 4.5702, Test: 5.9602, BestTest: 5.9602
+INFO:root:Model saved!
+INFO:root:Epoch : 17/100, Loss: 4.3640, Test: 5.7146, BestTest: 5.7146
+INFO:root:Model saved!
+INFO:root:Epoch : 18/100, Loss: 3.9155, Test: 5.4583, BestTest: 5.4583
+INFO:root:Model saved!
+INFO:root:Epoch : 19/100, Loss: 3.8242, Test: 5.3295, BestTest: 5.3295
+INFO:root:Model saved!
+INFO:root:Epoch : 20/100, Loss: 3.5215, Test: 4.9716, BestTest: 4.9716
+INFO:root:Model saved!
+INFO:root:Epoch : 21/100, Loss: 2.9527, Test: 4.4047, BestTest: 4.4047
+INFO:root:Model saved!
+INFO:root:Epoch : 22/100, Loss: 2.5800, Test: 4.3806, BestTest: 4.3806
+INFO:root:Model saved!
+INFO:root:Epoch : 23/100, Loss: 2.6416, Test: 4.0833, BestTest: 4.0833
+INFO:root:Model saved!
+INFO:root:Epoch : 24/100, Loss: 2.9576, Test: 3.9488, BestTest: 3.9488
+INFO:root:Epoch : 25/100, Loss: 2.8121, Test: 4.6018, BestTest: 3.9488
+INFO:root:Model saved!
+INFO:root:Epoch : 26/100, Loss: 3.0054, Test: 3.7356, BestTest: 3.7356
+INFO:root:Model saved!
+INFO:root:Epoch : 27/100, Loss: 2.1936, Test: 3.6318, BestTest: 3.6318
+INFO:root:Model saved!
+INFO:root:Epoch : 28/100, Loss: 2.0785, Test: 3.5819, BestTest: 3.5819
+INFO:root:Model saved!
+INFO:root:Epoch : 29/100, Loss: 1.9275, Test: 3.4844, BestTest: 3.4844
+INFO:root:Model saved!
+INFO:root:Epoch : 30/100, Loss: 1.6726, Test: 3.2986, BestTest: 3.2986
+INFO:root:Model saved!
+INFO:root:Epoch : 31/100, Loss: 1.4383, Test: 3.1656, BestTest: 3.1656
+INFO:root:Model saved!
+INFO:root:Epoch : 32/100, Loss: 1.5308, Test: 3.1076, BestTest: 3.1076
+INFO:root:Model saved!
+INFO:root:Epoch : 33/100, Loss: 1.5038, Test: 3.0091, BestTest: 3.0091
+INFO:root:Epoch : 34/100, Loss: 1.3648, Test: 3.1702, BestTest: 3.0091
+INFO:root:Model saved!
+INFO:root:Epoch : 35/100, Loss: 1.2761, Test: 2.9564, BestTest: 2.9564
+INFO:root:Model saved!
+INFO:root:Epoch : 36/100, Loss: 1.1809, Test: 2.8946, BestTest: 2.8946
+INFO:root:Model saved!
+INFO:root:Epoch : 37/100, Loss: 1.1062, Test: 2.8541, BestTest: 2.8541
+INFO:root:Model saved!
+INFO:root:Epoch : 38/100, Loss: 1.0544, Test: 2.8321, BestTest: 2.8321
+INFO:root:Model saved!
+INFO:root:Epoch : 39/100, Loss: 1.2132, Test: 2.8061, BestTest: 2.8061
+INFO:root:Model saved!
+INFO:root:Epoch : 40/100, Loss: 1.1475, Test: 2.8044, BestTest: 2.8044
+INFO:root:Model saved!
+INFO:root:Epoch : 41/100, Loss: 1.0051, Test: 2.7777, BestTest: 2.7777
+INFO:root:Model saved!
+INFO:root:Epoch : 42/100, Loss: 0.8889, Test: 2.6720, BestTest: 2.6720
+INFO:root:Epoch : 43/100, Loss: 0.8208, Test: 2.7337, BestTest: 2.6720
+INFO:root:Epoch : 44/100, Loss: 0.8718, Test: 2.8168, BestTest: 2.6720
+INFO:root:Model saved!
+INFO:root:Epoch : 45/100, Loss: 0.8611, Test: 2.6319, BestTest: 2.6319
+INFO:root:Model saved!
+INFO:root:Epoch : 46/100, Loss: 0.8960, Test: 2.5915, BestTest: 2.5915
+INFO:root:Epoch : 47/100, Loss: 0.9249, Test: 2.6744, BestTest: 2.5915
+INFO:root:Epoch : 48/100, Loss: 1.1848, Test: 2.8241, BestTest: 2.5915
+INFO:root:Model saved!
+INFO:root:Epoch : 49/100, Loss: 0.8643, Test: 2.5604, BestTest: 2.5604
+INFO:root:Epoch : 50/100, Loss: 0.9430, Test: 2.5741, BestTest: 2.5604
+INFO:root:Epoch : 51/100, Loss: 0.7690, Test: 2.5754, BestTest: 2.5604
+INFO:root:Epoch : 52/100, Loss: 0.7675, Test: 2.6886, BestTest: 2.5604
+INFO:root:Epoch : 53/100, Loss: 0.8609, Test: 2.5956, BestTest: 2.5604
+INFO:root:Epoch : 54/100, Loss: 1.1681, Test: 2.8562, BestTest: 2.5604
+INFO:root:Epoch : 55/100, Loss: 1.0251, Test: 2.7136, BestTest: 2.5604
+INFO:root:Model saved!
+INFO:root:Epoch : 56/100, Loss: 0.8942, Test: 2.4674, BestTest: 2.4674
+INFO:root:Model saved!
+INFO:root:Epoch : 57/100, Loss: 0.7042, Test: 2.4365, BestTest: 2.4365
+INFO:root:Epoch : 58/100, Loss: 0.6210, Test: 2.4875, BestTest: 2.4365
+INFO:root:Epoch : 59/100, Loss: 0.7418, Test: 2.4924, BestTest: 2.4365
+INFO:root:Epoch : 60/100, Loss: 0.7556, Test: 2.4449, BestTest: 2.4365
+INFO:root:Model saved!
+INFO:root:Epoch : 61/100, Loss: 0.6027, Test: 2.4307, BestTest: 2.4307
+INFO:root:Epoch : 62/100, Loss: 0.6467, Test: 2.5297, BestTest: 2.4307
+INFO:root:Epoch : 63/100, Loss: 1.1962, Test: 2.5293, BestTest: 2.4307
+INFO:root:Epoch : 64/100, Loss: 0.8217, Test: 2.5338, BestTest: 2.4307
+INFO:root:Epoch : 65/100, Loss: 0.7421, Test: 2.5192, BestTest: 2.4307
+INFO:root:Epoch : 66/100, Loss: 0.6622, Test: 2.5557, BestTest: 2.4307
+INFO:root:Model saved!
+INFO:root:Epoch : 67/100, Loss: 0.6196, Test: 2.4036, BestTest: 2.4036
+INFO:root:Epoch : 68/100, Loss: 0.7135, Test: 2.5250, BestTest: 2.4036
+INFO:root:Epoch : 69/100, Loss: 0.7863, Test: 2.4049, BestTest: 2.4036
+INFO:root:Epoch : 70/100, Loss: 0.7418, Test: 2.4385, BestTest: 2.4036
+INFO:root:Epoch : 71/100, Loss: 0.5868, Test: 2.6112, BestTest: 2.4036
+INFO:root:Epoch : 72/100, Loss: 0.7142, Test: 2.4636, BestTest: 2.4036
+INFO:root:Epoch : 73/100, Loss: 0.7444, Test: 2.5813, BestTest: 2.4036
+INFO:root:Epoch : 74/100, Loss: 1.1748, Test: 2.9398, BestTest: 2.4036
+INFO:root:Model saved!
+INFO:root:Epoch : 75/100, Loss: 0.8959, Test: 2.3637, BestTest: 2.3637
+INFO:root:Epoch : 76/100, Loss: 0.6238, Test: 2.6493, BestTest: 2.3637
+INFO:root:Epoch : 77/100, Loss: 0.5580, Test: 2.3796, BestTest: 2.3637
+INFO:root:Epoch : 78/100, Loss: 0.5313, Test: 2.4394, BestTest: 2.3637
+INFO:root:Epoch : 79/100, Loss: 0.6378, Test: 2.3678, BestTest: 2.3637
+INFO:root:Epoch : 80/100, Loss: 0.5511, Test: 2.4354, BestTest: 2.3637
+INFO:root:Epoch : 81/100, Loss: 0.5256, Test: 2.4201, BestTest: 2.3637
+INFO:root:Epoch : 82/100, Loss: 0.5132, Test: 2.4825, BestTest: 2.3637
+INFO:root:Model saved!
+INFO:root:Epoch : 83/100, Loss: 0.5692, Test: 2.3107, BestTest: 2.3107
+INFO:root:Epoch : 84/100, Loss: 0.4981, Test: 2.3873, BestTest: 2.3107
+INFO:root:Epoch : 85/100, Loss: 0.4476, Test: 2.3658, BestTest: 2.3107
+INFO:root:Epoch : 86/100, Loss: 0.6397, Test: 2.6066, BestTest: 2.3107
+INFO:root:Epoch : 87/100, Loss: 1.0116, Test: 2.5780, BestTest: 2.3107
+INFO:root:Epoch : 88/100, Loss: 0.9245, Test: 2.4370, BestTest: 2.3107
+INFO:root:Epoch : 89/100, Loss: 0.8484, Test: 2.6350, BestTest: 2.3107
+INFO:root:Epoch : 90/100, Loss: 0.7848, Test: 2.5997, BestTest: 2.3107
+INFO:root:Epoch : 91/100, Loss: 0.8773, Test: 2.4724, BestTest: 2.3107
+INFO:root:Epoch : 92/100, Loss: 0.5451, Test: 2.3686, BestTest: 2.3107
+INFO:root:Epoch : 93/100, Loss: 0.4617, Test: 2.3413, BestTest: 2.3107
+INFO:root:Epoch : 94/100, Loss: 0.4393, Test: 2.3723, BestTest: 2.3107
+INFO:root:Epoch : 95/100, Loss: 0.5665, Test: 2.3855, BestTest: 2.3107
+INFO:root:Epoch : 96/100, Loss: 0.5396, Test: 2.4624, BestTest: 2.3107
+INFO:root:Model saved!
+INFO:root:Epoch : 97/100, Loss: 0.4064, Test: 2.3016, BestTest: 2.3016
+INFO:root:Epoch : 98/100, Loss: 0.4078, Test: 2.3115, BestTest: 2.3016
+INFO:root:Epoch : 99/100, Loss: 0.4922, Test: 2.3252, BestTest: 2.3016
+INFO:root:lr:1.5811e-04
+INFO:root:Epoch : 100/100, Loss: 0.4315, Test: 2.3243, BestTest: 2.3016
+INFO:root:######################################################################
+INFO:root:无标签数据打上伪标签
+INFO:root:######################################################################
+INFO:root:标签数据和伪标签无数据一块训练出新模型
+INFO:root:Epoch : 1/100, Loss: 25.9039, Test: 2.6870, BestTest: 2.3016
+INFO:root:Epoch : 2/100, Loss: 22.0512, Test: 2.6158, BestTest: 2.3016
+INFO:root:Epoch : 3/100, Loss: 15.8147, Test: 2.4249, BestTest: 2.3016
+INFO:root:Epoch : 4/100, Loss: 14.8509, Test: 2.4382, BestTest: 2.3016
+INFO:root:Epoch : 5/100, Loss: 12.3351, Test: 2.6884, BestTest: 2.3016
+INFO:root:Epoch : 6/100, Loss: 12.5407, Test: 2.4307, BestTest: 2.3016
+INFO:root:Epoch : 7/100, Loss: 11.2847, Test: 2.3223, BestTest: 2.3016
+INFO:root:Epoch : 8/100, Loss: 9.2220, Test: 2.3277, BestTest: 2.3016
+INFO:root:Epoch : 9/100, Loss: 9.0914, Test: 2.5284, BestTest: 2.3016
+INFO:root:Epoch : 10/100, Loss: 11.7061, Test: 2.5808, BestTest: 2.3016
+INFO:root:Epoch : 11/100, Loss: 10.3781, Test: 2.3139, BestTest: 2.3016
+INFO:root:Epoch : 12/100, Loss: 8.5171, Test: 2.4569, BestTest: 2.3016
+INFO:root:Epoch : 13/100, Loss: 10.0517, Test: 2.3347, BestTest: 2.3016
+INFO:root:Epoch : 14/100, Loss: 7.3288, Test: 2.3169, BestTest: 2.3016
+INFO:root:Epoch : 15/100, Loss: 7.9326, Test: 2.4822, BestTest: 2.3016
+INFO:root:Epoch : 16/100, Loss: 9.1242, Test: 2.3547, BestTest: 2.3016
+INFO:root:Epoch : 17/100, Loss: 7.9926, Test: 2.4947, BestTest: 2.3016
+INFO:root:Epoch : 18/100, Loss: 8.1512, Test: 2.3151, BestTest: 2.3016
+INFO:root:Epoch : 19/100, Loss: 7.7687, Test: 2.3497, BestTest: 2.3016
+INFO:root:Epoch : 20/100, Loss: 8.1130, Test: 2.4515, BestTest: 2.3016
+INFO:root:Epoch : 21/100, Loss: 9.5327, Test: 2.3861, BestTest: 2.3016
+INFO:root:Epoch : 22/100, Loss: 7.6414, Test: 2.3276, BestTest: 2.3016
+INFO:root:Epoch : 23/100, Loss: 7.0693, Test: 2.3082, BestTest: 2.3016
+INFO:root:Epoch : 24/100, Loss: 7.6563, Test: 2.3891, BestTest: 2.3016
+INFO:root:Epoch : 25/100, Loss: 7.1749, Test: 2.3346, BestTest: 2.3016
+INFO:root:Model saved!
+INFO:root:Epoch : 26/100, Loss: 7.9542, Test: 2.2959, BestTest: 2.2959
+INFO:root:Model saved!
+INFO:root:Epoch : 27/100, Loss: 7.9607, Test: 2.2782, BestTest: 2.2782
+INFO:root:Epoch : 28/100, Loss: 6.2673, Test: 2.4356, BestTest: 2.2782
+INFO:root:Epoch : 29/100, Loss: 7.7003, Test: 2.3050, BestTest: 2.2782
+INFO:root:Epoch : 30/100, Loss: 7.5420, Test: 2.3622, BestTest: 2.2782
+INFO:root:Epoch : 31/100, Loss: 7.4071, Test: 2.3241, BestTest: 2.2782
+INFO:root:Epoch : 32/100, Loss: 5.9814, Test: 2.3329, BestTest: 2.2782
+INFO:root:Epoch : 33/100, Loss: 6.4042, Test: 2.3010, BestTest: 2.2782
+INFO:root:Epoch : 34/100, Loss: 6.6295, Test: 2.3159, BestTest: 2.2782
+INFO:root:Epoch : 35/100, Loss: 7.3010, Test: 2.3179, BestTest: 2.2782
+INFO:root:Epoch : 36/100, Loss: 7.1140, Test: 2.3717, BestTest: 2.2782
+INFO:root:Epoch : 37/100, Loss: 5.7740, Test: 2.3431, BestTest: 2.2782
+INFO:root:Epoch : 38/100, Loss: 6.2123, Test: 2.3906, BestTest: 2.2782
+INFO:root:Epoch : 39/100, Loss: 6.9438, Test: 2.3166, BestTest: 2.2782
+INFO:root:Epoch : 40/100, Loss: 6.4526, Test: 2.4068, BestTest: 2.2782
+INFO:root:Epoch : 41/100, Loss: 6.0256, Test: 2.2795, BestTest: 2.2782
+INFO:root:Epoch : 42/100, Loss: 5.7526, Test: 2.3242, BestTest: 2.2782
+INFO:root:Epoch : 43/100, Loss: 5.4341, Test: 2.3004, BestTest: 2.2782
+INFO:root:Epoch : 44/100, Loss: 6.3223, Test: 2.3223, BestTest: 2.2782
+INFO:root:Epoch : 45/100, Loss: 5.7683, Test: 2.3100, BestTest: 2.2782
+INFO:root:Epoch : 46/100, Loss: 5.7929, Test: 2.3394, BestTest: 2.2782
+INFO:root:Epoch : 47/100, Loss: 5.6956, Test: 2.3151, BestTest: 2.2782
+INFO:root:Epoch : 48/100, Loss: 5.9182, Test: 2.3337, BestTest: 2.2782
+INFO:root:Epoch : 49/100, Loss: 5.3433, Test: 2.3396, BestTest: 2.2782
+INFO:root:Epoch : 50/100, Loss: 6.0049, Test: 2.3186, BestTest: 2.2782
+INFO:root:Epoch : 51/100, Loss: 6.6546, Test: 2.2988, BestTest: 2.2782
+INFO:root:Epoch : 52/100, Loss: 5.3778, Test: 2.3280, BestTest: 2.2782
+INFO:root:Epoch : 53/100, Loss: 4.8702, Test: 2.2870, BestTest: 2.2782
+INFO:root:Epoch : 54/100, Loss: 5.9675, Test: 2.3259, BestTest: 2.2782
+INFO:root:Epoch : 55/100, Loss: 5.8704, Test: 2.3029, BestTest: 2.2782
+INFO:root:Epoch : 56/100, Loss: 5.7188, Test: 2.3398, BestTest: 2.2782
+INFO:root:Epoch : 57/100, Loss: 5.2859, Test: 2.3700, BestTest: 2.2782
+INFO:root:Epoch : 58/100, Loss: 5.6152, Test: 2.3266, BestTest: 2.2782
+INFO:root:Epoch : 59/100, Loss: 5.7496, Test: 2.3290, BestTest: 2.2782
+INFO:root:Epoch : 60/100, Loss: 5.4682, Test: 2.2990, BestTest: 2.2782
+INFO:root:Epoch : 61/100, Loss: 5.6112, Test: 2.3178, BestTest: 2.2782
+INFO:root:Epoch : 62/100, Loss: 5.9788, Test: 2.3236, BestTest: 2.2782
+INFO:root:Epoch : 63/100, Loss: 4.2859, Test: 2.3170, BestTest: 2.2782
+INFO:root:Epoch : 64/100, Loss: 5.7661, Test: 2.3403, BestTest: 2.2782
+INFO:root:Epoch : 65/100, Loss: 5.0655, Test: 2.3078, BestTest: 2.2782
+INFO:root:Epoch : 66/100, Loss: 5.1986, Test: 2.3045, BestTest: 2.2782
+INFO:root:Epoch : 67/100, Loss: 5.0120, Test: 2.2884, BestTest: 2.2782
+INFO:root:Epoch : 68/100, Loss: 5.6711, Test: 2.4502, BestTest: 2.2782
+INFO:root:Epoch : 69/100, Loss: 5.4555, Test: 2.3217, BestTest: 2.2782
+INFO:root:Epoch : 70/100, Loss: 4.5747, Test: 2.3311, BestTest: 2.2782
+INFO:root:Epoch : 71/100, Loss: 4.5869, Test: 2.3061, BestTest: 2.2782
+INFO:root:Epoch : 72/100, Loss: 4.5745, Test: 2.3246, BestTest: 2.2782
+INFO:root:Epoch : 73/100, Loss: 5.6569, Test: 2.3361, BestTest: 2.2782
+INFO:root:Epoch : 74/100, Loss: 4.8090, Test: 2.3228, BestTest: 2.2782
+INFO:root:Epoch : 75/100, Loss: 4.6259, Test: 2.3147, BestTest: 2.2782
+INFO:root:Epoch : 76/100, Loss: 4.4012, Test: 2.3001, BestTest: 2.2782
+INFO:root:Epoch : 77/100, Loss: 4.4936, Test: 2.3115, BestTest: 2.2782
+INFO:root:Epoch : 78/100, Loss: 4.2161, Test: 2.2867, BestTest: 2.2782
+INFO:root:Epoch : 79/100, Loss: 4.6094, Test: 2.3150, BestTest: 2.2782
+INFO:root:Epoch : 80/100, Loss: 4.5447, Test: 2.3352, BestTest: 2.2782
+INFO:root:Epoch : 81/100, Loss: 4.0926, Test: 2.3389, BestTest: 2.2782
+INFO:root:Epoch : 82/100, Loss: 6.1626, Test: 2.3447, BestTest: 2.2782
+INFO:root:Epoch : 83/100, Loss: 4.2692, Test: 2.3032, BestTest: 2.2782
+INFO:root:Model saved!
+INFO:root:Epoch : 84/100, Loss: 4.6326, Test: 2.2770, BestTest: 2.2770
+INFO:root:Epoch : 85/100, Loss: 4.3951, Test: 2.3227, BestTest: 2.2770
+INFO:root:Epoch : 86/100, Loss: 5.5387, Test: 2.3032, BestTest: 2.2770
+INFO:root:Epoch : 87/100, Loss: 4.1094, Test: 2.3166, BestTest: 2.2770
+INFO:root:Epoch : 88/100, Loss: 4.2101, Test: 2.3179, BestTest: 2.2770
+INFO:root:Epoch : 89/100, Loss: 5.0826, Test: 2.3152, BestTest: 2.2770
+INFO:root:Epoch : 90/100, Loss: 4.4090, Test: 2.3536, BestTest: 2.2770
+INFO:root:Epoch : 91/100, Loss: 5.2490, Test: 2.3287, BestTest: 2.2770
+INFO:root:Epoch : 92/100, Loss: 4.3342, Test: 2.3157, BestTest: 2.2770
+INFO:root:Epoch : 93/100, Loss: 4.5798, Test: 2.3233, BestTest: 2.2770
+INFO:root:Epoch : 94/100, Loss: 4.3006, Test: 2.3053, BestTest: 2.2770
+INFO:root:Epoch : 95/100, Loss: 4.2057, Test: 2.3226, BestTest: 2.2770
+INFO:root:Epoch : 96/100, Loss: 4.0986, Test: 2.2974, BestTest: 2.2770
+INFO:root:Epoch : 97/100, Loss: 3.7604, Test: 2.2816, BestTest: 2.2770
+INFO:root:Epoch : 98/100, Loss: 3.7094, Test: 2.3252, BestTest: 2.2770
+INFO:root:Epoch : 99/100, Loss: 5.0738, Test: 2.3121, BestTest: 2.2770
+INFO:root:lr:1.5811e-04
+INFO:root:Epoch : 100/100, Loss: 2.4356, Test: 2.2874, BestTest: 2.2770
