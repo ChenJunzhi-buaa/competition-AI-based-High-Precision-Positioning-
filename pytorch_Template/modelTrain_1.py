@@ -1,3 +1,5 @@
+# TODO 
+# 数据增强：全用和只用4个；用4、5、6、---、16个
 import h5py
 import numpy as np
 
@@ -49,7 +51,7 @@ class MyTestset(Dataset):
 
 BATCH_SIZE = 100
 LEARNING_RATE = 0.001
-TOTAL_EPOCHS = 100
+TOTAL_EPOCHS = 20
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
