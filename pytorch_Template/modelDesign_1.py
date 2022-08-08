@@ -11,15 +11,20 @@ class Model_1(nn.Module):
     def __init__(self):
         super(Model_1, self).__init__()
         self.net = nn.Sequential(
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            
             nn.Conv2d(256, 256, kernel_size = 2, stride = 1, padding= 1),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.MaxPool2d(kernel_size=(2,1), stride=(2,1), padding=0),
             nn.Conv2d(256, 512, kernel_size = 2, stride = 1, padding= 1),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.MaxPool2d(kernel_size=(2,1), stride=(2,1), padding=0),
             nn.Conv2d(512, 768, kernel_size = 2, stride = 1, padding= 1),
-            nn.MaxPool2d(kernel_size = (2, 1), stride = (2, 1), padding = 0),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.MaxPool2d(kernel_size=(2,1), stride=(2,1), padding=0),
             nn.Flatten(),
-            nn.Linear(768*9*5,10),
-            nn.Dropout(0.2),
-            nn.Linear(10,2)
+            nn.Linear(768*9*5,2),
+            # nn.Dropout(0.2),
+            # nn.Linear(10,2)
         )
 
 

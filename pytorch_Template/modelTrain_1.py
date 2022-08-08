@@ -1,5 +1,6 @@
 # TODO 
 # 数据增强：全用和只用4个；用4、5、6、---、16个
+# 改loss，改为dist和评测对应的
 import h5py
 import numpy as np
 
@@ -8,7 +9,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from modelDesign_1 import Model_1
 import logging
-logging.basicConfig(filename="pytorch_Template/model1_log.txt", filemode='w', level=logging.DEBUG)
+import argparse
+import os
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -51,18 +53,25 @@ class MyTestset(Dataset):
 
 BATCH_SIZE = 100
 LEARNING_RATE = 0.001
-TOTAL_EPOCHS = 40
+TOTAL_EPOCHS = 100
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
-model_save = 'pytorch_Template/modelSubmit_1.pth'
 
 DEVICE=torch.device("cpu")
 if torch.cuda.is_available():
-        DEVICE=torch.device("cuda:1")
+        DEVICE=torch.device("cuda:0")
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--submit_id', type=int)
+    args = parser.parse_args()
+    submit_path = os.path.join('submit',str(args.submit_id))
+    if not os.path.exists(submit_path):
+        os.mkdir(submit_path)
+    logging.basicConfig(filename=os.path.join(submit_path,"model1_log.txt"), filemode='w', level=logging.DEBUG)
+    model_save = os.path.join(submit_path,'modelSubmit_1.pth')
 
     file_name1 = 'data/Case_1_2_Training.npy'
     logging.info('The current dataset is : %s'%(file_name1))
@@ -86,7 +95,7 @@ if __name__ == '__main__':
     test_loader = DataLoader(dataset=test_dataset,
                                                batch_size=BATCH_SIZE,
                                                shuffle=True)  # shuffle 标识要打乱顺序
-    criterion = nn.L1Loss().to(DEVICE)
+    criterion = nn.MSELoss().to(DEVICE)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
     
