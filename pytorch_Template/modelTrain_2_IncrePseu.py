@@ -5,7 +5,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, ConcatDataset
+from torch.utils.data import Dataset, DataLoader
 from modelDesign_2 import Model_2
 import logging
 logging.basicConfig(filename="pytorch_Template/model2_log.txt", filemode='w', level=logging.DEBUG)

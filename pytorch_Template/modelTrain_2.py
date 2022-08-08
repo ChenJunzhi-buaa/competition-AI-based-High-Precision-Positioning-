@@ -53,7 +53,7 @@ TOTAL_EPOCHS = 100
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
-model_save = 'modelSubmit_2.pth'
+model_save = 'pytorch_Template/modelSubmit_2.pth'
 
 """注意评测设备只有一块gpu"""
 DEVICE=torch.device("cpu")

@@ -51,11 +51,11 @@ class MyTestset(Dataset):
 
 BATCH_SIZE = 100
 LEARNING_RATE = 0.001
-TOTAL_EPOCHS = 20
+TOTAL_EPOCHS = 40
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
-model_save = 'modelSubmit_1.pth'
+model_save = 'pytorch_Template/modelSubmit_1.pth'
 
 DEVICE=torch.device("cpu")
 if torch.cuda.is_available():
@@ -88,7 +88,7 @@ if __name__ == '__main__':
                                                shuffle=True)  # shuffle 标识要打乱顺序
     criterion = nn.L1Loss().to(DEVICE)
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
     
     test_avg_min = 10000;
     for epoch in range(TOTAL_EPOCHS):
@@ -141,9 +141,4 @@ if __name__ == '__main__':
             torch.save(model.state_dict(), model_save)
             model.to(DEVICE)
         logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
-    #torch.save(model model_save)
-    #torch.save(model.state_dict(), model_save)
 
-# else:
-#     logging.info("load torch model")
-#     model_ckpt = torch.load(model, model_save)
