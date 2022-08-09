@@ -8,7 +8,9 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from modelDesign_2 import Model_2
 import logging
-logging.basicConfig(filename="pytorch_Template/model2_log.txt", filemode='w', level=logging.DEBUG)
+from shutil import copyfile
+import argparse
+import os
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -83,8 +85,8 @@ class SSL():
         train_loader = DataLoader(dataset=train_dataset,
                                                 batch_size=BATCH_SIZE,
                                                 shuffle=True)  # shuffle 标识要打乱顺序
-        criterion = nn.L1Loss().to(self.device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+        criterion = nn.MSELoss().to(self.device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
         for epoch in range(TOTAL_EPOCHS):
             model.train()       
             optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
@@ -135,12 +137,12 @@ class SSL():
         Y3_model1 = self.label(self.unlabelset_X3, self.model1)
         Y3_model2 = self.label(self.unlabelset_X3, self.model2)
         diff = (Y3_model1 - Y3_model2).square().sum(dim=1).sqrt()
-        """方式1"""
+        """方式1:两个模型预测足够接近的样本才打上标签"""
         # diff_flag = diff < thres
         # Labeled_X3 = self.unlabelset_X3[diff_flag]
         # Unlabeled_X3 = self.unlabelset_X3[diff_flag.logical_not()]
         # Labeled_Y3 = ((Y3_model1 + Y3_model2)/2.0)[diff_flag]
-        """方式2"""
+        """方式2:两个模型预测最接近的前一半的样本打上标签"""
         Labeled_X3 = self.unlabelset_X3[diff.sort()[1][:len(diff)//2]]
         Unlabeled_X3 = self.unlabelset_X3[diff.sort()[1][len(diff)//2:]]
         Labeled_Y3 = ((Y3_model1 + Y3_model2)/2.0)[diff.sort()[1][:len(diff)//2]]
@@ -168,15 +170,28 @@ class SSL():
 
 
 
-model_save = 'modelSubmit_2.pth'
 
-"""注意评测设备只有一块gpu"""
-DEVICE=torch.device("cpu")
-if torch.cuda.is_available():
-    DEVICE=torch.device("cuda:1")
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--submit_id', type=str, required=True)
+    args = parser.parse_args()
+    id_path = os.path.join('submit',str(args.submit_id))
+    if not os.path.exists(id_path):
+        os.mkdir(id_path)
+    submit_path = os.path.join(id_path, 'submit_pt')
+    if not os.path.exists(submit_path):
+        os.mkdir(submit_path)
+    logging.basicConfig(filename=os.path.join(id_path,"model2_log.txt"), filemode='w', level=logging.DEBUG)
+    model_save = os.path.join(submit_path,'modelSubmit_2.pth')
+    copyfile('pytorch_Template/modelDesign_2.py', os.path.join(submit_path, 'modelDesign_2.py'))
+    copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
+
+    """注意评测设备只有一块gpu"""
+    DEVICE=torch.device("cpu")
+    if torch.cuda.is_available():
+        DEVICE=torch.device("cuda:1")
 
     file_name1 = 'data/Case_3_Training.npy'
     logging.info('The current dataset is : %s'%(file_name1))
@@ -189,6 +204,16 @@ if __name__ == '__main__':
     POS = np.load(file_name2)
     trainY_labeled = POS.transpose((1,0)) #[none, 2]
 
+
+    """打乱数据顺序"""
+    index_L = np.arange(len(trainX_labeled))
+    np.random.shuffle(index_L)
+    trainX_labeled = trainX_labeled[index_L]
+    trainY_labeled = trainY_labeled[index_L]
+    index_U = np.arange(len(trainX_unlabeled))
+    np.random.shuffle(index_U)
+    trainX_unlabeled = trainX_unlabeled[index_U]
+    
     ssl = SSL(labelset_X=trainX_labeled, labelset_Y=trainY_labeled, unlabelset_X=trainX_unlabeled, device="cuda:0")
     ssl.main()
     ssl.model_last.to("cuda:0")

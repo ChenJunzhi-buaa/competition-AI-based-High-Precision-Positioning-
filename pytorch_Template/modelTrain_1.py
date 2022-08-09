@@ -1,6 +1,9 @@
 # TODO 
 # 数据增强：全用和只用4个；用4、5、6、---、16个
 # 改loss，改为dist和评测对应的
+# 分测试集之前，打乱一下可能比较好
+# 从某个checkpoint开始训练
+from copy import copy
 import h5py
 import numpy as np
 
@@ -11,6 +14,8 @@ from modelDesign_1 import Model_1
 import logging
 import argparse
 import os
+from shutil import copyfile
+from utils import seed_everything
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -53,7 +58,7 @@ class MyTestset(Dataset):
 
 BATCH_SIZE = 100
 LEARNING_RATE = 0.001
-TOTAL_EPOCHS = 100
+TOTAL_EPOCHS = 1000
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
@@ -64,14 +69,24 @@ if torch.cuda.is_available():
 
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('--submit_id', type=int)
+    parser.add_argument('--submit_id', type=str, required=True)
     args = parser.parse_args()
-    submit_path = os.path.join('submit',str(args.submit_id))
+    id_path = os.path.join('submit',str(args.submit_id))
+    if not os.path.exists(id_path):
+        os.mkdir(id_path)
+    submit_path = os.path.join(id_path, 'submit_pt')
     if not os.path.exists(submit_path):
         os.mkdir(submit_path)
-    logging.basicConfig(filename=os.path.join(submit_path,"model1_log.txt"), filemode='w', level=logging.DEBUG)
+    logging.basicConfig(filename=os.path.join(id_path,"model1_log.txt"), filemode='w', level=logging.DEBUG)
     model_save = os.path.join(submit_path,'modelSubmit_1.pth')
+    copyfile('pytorch_Template/modelDesign_1.py', os.path.join(submit_path, 'modelDesign_1.py'))
+    copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
+
+    seed_value = 1
+    seed_everything(seed_value=seed_value)
+    logging.info(f'seed_value:{seed_value}')
 
     file_name1 = 'data/Case_1_2_Training.npy'
     logging.info('The current dataset is : %s'%(file_name1))

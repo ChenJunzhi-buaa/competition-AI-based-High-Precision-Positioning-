@@ -6,7 +6,10 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from modelDesign_2 import Model_2
 import logging
-logging.basicConfig(filename="pytorch_Template/model2_log.txt", filemode='w', level=logging.DEBUG)
+import os
+from shutil import copyfile
+import argparse
+from utils import seed_everything
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -49,7 +52,7 @@ class MyTestset(Dataset):
 
 BATCH_SIZE = 100
 LEARNING_RATE = 0.001
-TOTAL_EPOCHS = 100
+TOTAL_EPOCHS = 1000
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
@@ -63,6 +66,24 @@ if torch.cuda.is_available():
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--submit_id', type=str, required=True)
+    args = parser.parse_args()
+    id_path = os.path.join('submit',str(args.submit_id))
+    if not os.path.exists(id_path):
+        os.mkdir(id_path)
+    submit_path = os.path.join(id_path, 'submit_pt')
+    if not os.path.exists(submit_path):
+        os.mkdir(submit_path)
+    logging.basicConfig(filename=os.path.join(id_path,"model2_log.txt"), filemode='w', level=logging.DEBUG)
+    model_save = os.path.join(submit_path,'modelSubmit_2.pth')
+    copyfile('pytorch_Template/modelDesign_2.py', os.path.join(submit_path, 'modelDesign_2.py'))
+    copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
+
+    seed_value = 1
+    seed_everything(seed_value=seed_value)
+    logging.info(f'seed_value:{seed_value}')
+
     file_name1 = 'data/Case_3_Training.npy'
     logging.info('The current dataset is : %s'%(file_name1))
     CIR = np.load(file_name1)
@@ -73,6 +94,16 @@ if __name__ == '__main__':
     logging.info('The current dataset is : %s'%(file_name2))
     POS = np.load(file_name2)
     trainY_labeled = POS.transpose((1,0)) #[none, 2]
+
+    """打乱数据顺序"""
+    index_L = np.arange(len(trainX_labeled))
+    np.random.shuffle(index_L)
+    trainX_labeled = trainX_labeled[index_L]
+    trainY_labeled = trainY_labeled[index_L]
+    index_U = np.arange(len(trainX_unlabeled))
+    np.random.shuffle(index_U)
+    trainX_unlabeled = trainX_unlabeled[index_U]
+
 
     model = Model_2()
     model = model.to(DEVICE)
@@ -87,9 +118,9 @@ if __name__ == '__main__':
     test_loader = DataLoader(dataset=test_dataset,
                                                batch_size=BATCH_SIZE,
                                                shuffle=True)  # shuffle 标识要打乱顺序
-    criterion = nn.L1Loss().to(DEVICE)
+    criterion = nn.MSELoss().to(DEVICE)
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
     
     test_avg_min = 10000;
     for epoch in range(TOTAL_EPOCHS):
@@ -167,12 +198,15 @@ if __name__ == '__main__':
             trainY_pselabeled = torch.concat((trainY_pselabeled, trainY_pselabeled_batch), dim=0)
 logging.info('######################################################################')
 logging.info('标签数据和伪标签无数据一块训练出新模型')
-
+model = Model_2()
+model = model.to(DEVICE)
 pse_dataset = MyDataset(np.array(trainX_unlabeled),np.array(trainY_pselabeled),split_ratio=0)
 concat_dataset = ConcatDataset((pse_dataset,train_dataset))
 concat_loader = DataLoader(dataset=concat_dataset,
                                                batch_size=BATCH_SIZE,
                                                shuffle=True)  # shuffle 
+optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+test_avg_min = 10000;
 for epoch in range(TOTAL_EPOCHS):
         model.train()       
         optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
