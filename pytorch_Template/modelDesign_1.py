@@ -35,6 +35,9 @@ class Model_1(nn.Module):
         # x.shape ([bs, 256, 72, 2])
         
         out = self.net(x)
-
+        out[:,0][out[:,0]>120]=120
+        out[:,0][out[:,0]<0]=0
+        out[:,1][out[:,1]>60]=60
+        out[:,1][out[:,1]<0]=0
         return out
 

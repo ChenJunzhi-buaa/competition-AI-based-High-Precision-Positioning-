@@ -3,6 +3,8 @@
 # 改loss，改为dist和评测对应的
 # 分测试集之前，打乱一下可能比较好
 # 从某个checkpoint开始训练
+# 模型集成bagging，5折
+# 把模型变大
 from copy import copy
 import h5py
 import numpy as np
@@ -58,7 +60,7 @@ class MyTestset(Dataset):
 
 BATCH_SIZE = 100
 LEARNING_RATE = 0.001
-TOTAL_EPOCHS = 1000
+TOTAL_EPOCHS = 10000
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
@@ -69,10 +71,11 @@ if torch.cuda.is_available():
 
 
 if __name__ == '__main__':
-
+    """命令行参数"""
     parser = argparse.ArgumentParser()
     parser.add_argument('--submit_id', type=str, required=True)
     args = parser.parse_args()
+    """保存好要提交的文件、训练代码、训练日志"""
     id_path = os.path.join('submit',str(args.submit_id))
     if not os.path.exists(id_path):
         os.mkdir(id_path)
@@ -83,20 +86,24 @@ if __name__ == '__main__':
     model_save = os.path.join(submit_path,'modelSubmit_1.pth')
     copyfile('pytorch_Template/modelDesign_1.py', os.path.join(submit_path, 'modelDesign_1.py'))
     copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
-
+    """设置随机数种子"""
     seed_value = 1
     seed_everything(seed_value=seed_value)
     logging.info(f'seed_value:{seed_value}')
-
+    """加载数据"""
     file_name1 = 'data/Case_1_2_Training.npy'
     logging.info('The current dataset is : %s'%(file_name1))
     CIR = np.load(file_name1)
     trainX = CIR.transpose((2,1,3,0))  #[none, 256, 72, 2]
-    
     file_name2 = 'data/Case_1_2_Training_Label.npy'
     logging.info('The current dataset is : %s'%(file_name2))
     POS = np.load(file_name2)
     trainY = POS.transpose((1,0)) #[none, 2]
+    """打乱数据顺序"""
+    index = np.arange(len(trainX))
+    np.random.shuffle(index)
+    trainX = trainX[index]
+    trainY = trainY[index]
 
     model = Model_1()
     model = model.to(DEVICE)

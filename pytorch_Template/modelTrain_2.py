@@ -1,3 +1,9 @@
+# TODO
+# seed随机数种子的选择可能挺有用
+# 虚拟标签的应该在那个120，60的范围内
+# 转化为分类问题
+# 数据归一化
+# BN层
 import h5py
 import numpy as np
 
@@ -56,19 +62,20 @@ TOTAL_EPOCHS = 1000
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
-model_save = 'pytorch_Template/modelSubmit_2.pth'
 
-"""注意评测设备只有一块gpu"""
-DEVICE=torch.device("cpu")
-if torch.cuda.is_available():
-    DEVICE=torch.device("cuda:1")
+
+
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--submit_id', type=str, required=True)
+    parser.add_argument('--cuda', default=0)
     args = parser.parse_args()
+    """注意评测设备只有一块gpu"""
+    DEVICE=torch.device(f"cuda:{args.cuda}")
+
     id_path = os.path.join('submit',str(args.submit_id))
     if not os.path.exists(id_path):
         os.mkdir(id_path)

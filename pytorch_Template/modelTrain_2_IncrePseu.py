@@ -1,4 +1,6 @@
-# TODO: psedo label应该不断更新
+# TODO
+# psedo label应该不断更新
+# 网络变小
 
 import h5py
 import numpy as np
@@ -11,6 +13,7 @@ import logging
 from shutil import copyfile
 import argparse
 import os
+from utils import seed_everything
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -67,6 +70,7 @@ class SSL():
         self.unlabelset_Y2 = None
         self.unlabelset_X3 = None
         self.unlabelset_Y3 = None
+        self.unlabelset_left = None
         self.device = device
         self.model_last = None
     def main(self,thres_len_un=2000):
@@ -76,7 +80,7 @@ class SSL():
             logging.info(f"第{i}次循环")
             self.get_new_set()
             i = i + 1
-        self.model_last = self.train(self.labelset_X,self.labelset_Y)
+        self.model_last = self.train(self.labelset_X,self.labelset_Y,TOTAL_EPOCHS=1000)
 
     def train(self, train_X, train_Y, BATCH_SIZE=100, LEARNING_RATE=0.001, TOTAL_EPOCHS=50, change_learning_rate_epochs=100):
         model = Model_2()
@@ -116,15 +120,24 @@ class SSL():
         return model
 
     def split_unlabelset(self, ):
-        len_unlabeset = self.unlabelset_X.shape[0]
-        split_len = len_unlabeset // 3
+        """TODO:无标签数据集的长度设定,或许要改进"""
+        if 3*len(self.labelset_X) < len(self.unlabelset_X):
+            split_len = len(self.labelset_X)
+        else:
+            split_len = len(self.unlabelset_X) // 3
+
+        """打乱一下"""
+        index = np.arange(len(self.unlabelset_X))
+        np.random.shuffle(index)
+        self.unlabelset_X = self.unlabelset_X[index]
+
         self.unlabelset_X1 = self.unlabelset_X[:split_len]
         self.unlabelset_X2 = self.unlabelset_X[split_len:split_len*2]
-        self.unlabelset_X3 = self.unlabelset_X[split_len*2:]
-        
+        self.unlabelset_X3 = self.unlabelset_X[split_len*2:split_len*3]
+        self.unlabelset_left = self.unlabelset_X[split_len*3:] # 剩下的
     def get_new_set(self,thres=1):
 
-        self.model0 = self.train(self.labelset_X, self.labelset_Y)
+        self.model0 = self.train(self.labelset_X, self.labelset_Y,TOTAL_EPOCHS=500)
         self.split_unlabelset()
         Y1 = self.label(self.unlabelset_X1, self.model0)
         Y2 = self.label(self.unlabelset_X2, self.model0)
@@ -132,8 +145,8 @@ class SSL():
         Y1_concat = torch.concat((self.labelset_Y, Y1), dim = 0)
         X2_concat = torch.concat((self.labelset_X, self.unlabelset_X2), dim=0)
         Y2_concat = torch.concat((self.labelset_Y, Y2), dim=0)
-        self.model1 = self.train(X1_concat,Y1_concat)
-        self.model2 = self.train(X2_concat,Y2_concat)
+        self.model1 = self.train(X1_concat,Y1_concat,TOTAL_EPOCHS=500)
+        self.model2 = self.train(X2_concat,Y2_concat,TOTAL_EPOCHS=500)
         Y3_model1 = self.label(self.unlabelset_X3, self.model1)
         Y3_model2 = self.label(self.unlabelset_X3, self.model2)
         diff = (Y3_model1 - Y3_model2).square().sum(dim=1).sqrt()
@@ -150,6 +163,8 @@ class SSL():
         self.labelset_X = torch.concat((self.labelset_X,Labeled_X3), dim=0)
         self.labelset_Y = torch.concat((self.labelset_Y,Labeled_Y3), dim=0)
         self.unlabelset_X = torch.concat((self.unlabelset_X1, self.unlabelset_X2, Unlabeled_X3), dim=0)
+        if len(self.unlabelset_left) > 0:
+            self.unlabelset_X = torch.concat((self.unlabelset_X, self.unlabelset_left), dim=0)
 
     def label(self, X, model, BATCH_SIZE=100):
         model.eval()
@@ -176,7 +191,11 @@ class SSL():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--submit_id', type=str, required=True)
+    parser.add_argument('--cuda', default=0)
     args = parser.parse_args()
+    """注意评测设备只有一块gpu"""
+    DEVICE=torch.device(f"cuda:{args.cuda}")
+
     id_path = os.path.join('submit',str(args.submit_id))
     if not os.path.exists(id_path):
         os.mkdir(id_path)
@@ -188,10 +207,9 @@ if __name__ == '__main__':
     copyfile('pytorch_Template/modelDesign_2.py', os.path.join(submit_path, 'modelDesign_2.py'))
     copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
 
-    """注意评测设备只有一块gpu"""
-    DEVICE=torch.device("cpu")
-    if torch.cuda.is_available():
-        DEVICE=torch.device("cuda:1")
+    seed_value = 1
+    seed_everything(seed_value=seed_value)
+    logging.info(f'seed_value:{seed_value}')
 
     file_name1 = 'data/Case_3_Training.npy'
     logging.info('The current dataset is : %s'%(file_name1))
