@@ -65,11 +65,8 @@ class SSL():
         self.model1 = None
         self.model2 = None
         self.unlabelset_X1 = None
-        self.unlabelset_Y1 = None
         self.unlabelset_X2 = None
-        self.unlabelset_Y2 = None
         self.unlabelset_X3 = None
-        self.unlabelset_Y3 = None
         self.unlabelset_left = None
         self.device = device
         self.model_last = None
@@ -80,7 +77,9 @@ class SSL():
             logging.info(f"第{i}次循环")
             self.get_new_set()
             i = i + 1
-        self.model_last = self.train(self.labelset_X,self.labelset_Y,TOTAL_EPOCHS=1000)
+        logging.info("训练model_last   ###################################")
+        self.model_last = self.train(self.labelset_X,self.labelset_Y,TOTAL_EPOCHS=1)
+
 
     def train(self, train_X, train_Y, BATCH_SIZE=100, LEARNING_RATE=0.001, TOTAL_EPOCHS=50, change_learning_rate_epochs=100):
         model = Model_2()
@@ -136,8 +135,8 @@ class SSL():
         self.unlabelset_X3 = self.unlabelset_X[split_len*2:split_len*3]
         self.unlabelset_left = self.unlabelset_X[split_len*3:] # 剩下的
     def get_new_set(self,thres=1):
-
-        self.model0 = self.train(self.labelset_X, self.labelset_Y,TOTAL_EPOCHS=500)
+        logging.info("训练model0   ##################################")
+        self.model0 = self.train(self.labelset_X, self.labelset_Y,TOTAL_EPOCHS=1)
         self.split_unlabelset()
         Y1 = self.label(self.unlabelset_X1, self.model0)
         Y2 = self.label(self.unlabelset_X2, self.model0)
@@ -145,8 +144,10 @@ class SSL():
         Y1_concat = torch.concat((self.labelset_Y, Y1), dim = 0)
         X2_concat = torch.concat((self.labelset_X, self.unlabelset_X2), dim=0)
         Y2_concat = torch.concat((self.labelset_Y, Y2), dim=0)
-        self.model1 = self.train(X1_concat,Y1_concat,TOTAL_EPOCHS=500)
-        self.model2 = self.train(X2_concat,Y2_concat,TOTAL_EPOCHS=500)
+        logging.info("训练model1   ##################################")
+        self.model1 = self.train(X1_concat,Y1_concat,TOTAL_EPOCHS=1)
+        logging.info("训练model2   ###################################")
+        self.model2 = self.train(X2_concat,Y2_concat,TOTAL_EPOCHS=1)
         Y3_model1 = self.label(self.unlabelset_X3, self.model1)
         Y3_model2 = self.label(self.unlabelset_X3, self.model2)
         diff = (Y3_model1 - Y3_model2).square().sum(dim=1).sqrt()
@@ -232,9 +233,15 @@ if __name__ == '__main__':
     np.random.shuffle(index_U)
     trainX_unlabeled = trainX_unlabeled[index_U]
     
-    ssl = SSL(labelset_X=trainX_labeled, labelset_Y=trainY_labeled, unlabelset_X=trainX_unlabeled, device="cuda:0")
+    ssl = SSL(labelset_X=trainX_labeled, labelset_Y=trainY_labeled, unlabelset_X=trainX_unlabeled, device=DEVICE)
     ssl.main()
     ssl.model_last.to("cuda:0")
     torch.save(ssl.model_last.state_dict(), model_save)
-    ssl.labelset_X.shape
 
+    np.save('unlabelset_X.npy', ssl.unlabelset_X.to('cpu').numpy())
+    np.save('labelset_X.npy', ssl.labelset_X.to('cpu').numpy())
+    np.save('labelset_Y.npy', ssl.labelset_Y.to('cpu').numpy())
+
+    logging.info(f"ssl.unlabelset_X.shape:{ssl.unlabelset_X.shape}")
+    logging.info(f"ssl.labelset_X.shape:{ssl.labelset_X.shape}")
+    logging.info(f"ssl.labelset_Y.shape:{ssl.labelset_Y.shape}")
