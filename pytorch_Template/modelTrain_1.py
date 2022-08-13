@@ -5,6 +5,7 @@
 # 从某个checkpoint开始训练
 # 模型集成bagging，5折
 # 把模型变大
+# 时域频域变换
 from copy import copy
 import h5py
 import numpy as np
