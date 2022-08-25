@@ -2,6 +2,7 @@
 # psedo label应该不断更新
 # 网络变小
 
+from pickle import NONE
 import h5py
 import numpy as np
 
@@ -13,55 +14,21 @@ import logging
 from shutil import copyfile
 import argparse
 import os
-from utils import seed_everything
-class MyDataset(Dataset):
-    def __init__(self, trainX,trainY,split_ratio):
-        N = trainX.shape[0]
-       
-        TrainNum = int((N*(1-split_ratio)))
-        self.x = trainX[:TrainNum]
-        self.y = trainY[:TrainNum]
-
-        self.len = len(self.y)
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):     
-        x = self.x[idx]
-        y = self.y[idx]
-        
-        return (x, y)
-
-class MyTestset(Dataset):
-    def __init__(self, trainX,trainY,split_ratio):
-        N = trainX.shape[0]
-       
-        TrainNum = int((N*(1-split_ratio)))
-        self.x = trainX[TrainNum:]
-        self.y = trainY[TrainNum:]
-
-        self.len = len(self.y)
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):     
-        x = self.x[idx]
-        y = self.y[idx]
-        
-        return (x, y)
+from utils import seed_everything,MyDataset,MyTestset
 
 class SSL():
 
-    def __init__(self, labelset_X , labelset_Y, unlabelset_X, device="cuda:0") :
+    def __init__(self, labelset_X , labelset_Y, unlabelset_X, model_save=None, device="cuda:0") :
         """
         labelset_X: shape (num,*,*,*,,)
         """
         self.labelset_X = torch.tensor(labelset_X, dtype=torch.float32)
         self.labelset_Y = torch.tensor(labelset_Y, dtype=torch.float32)
+
         self.unlabelset_X = torch.tensor(unlabelset_X, dtype=torch.float32)
         self.model0 = Model_2()
+        # """加载比较强的模型"""
+        self.model0.load_state_dict(torch.load("submit/22/submit_pt/modelSubmit_2.pth"))
         self.model1 = None
         self.model2 = None
         self.unlabelset_X1 = None
@@ -72,58 +39,122 @@ class SSL():
         self.model_last = None
         self.concat_X = None
         self.concat_Y = None
+        self.test_avg_min = 10000
+        self.model_save = model_save
+
+        """分出测试集"""
+        test_labelset_X = self.labelset_X[-int(len(self.labelset_X)/10.0):]
+        test_labelset_Y = self.labelset_Y[-int(len(self.labelset_X)/10.0):]
+        test_set = MyDataset(test_labelset_X,test_labelset_Y,split_ratio=0)
+        self.test_loader = DataLoader(dataset=test_set,
+                                                batch_size=100,
+                                                shuffle=True) 
+        self.labelset_X = self.labelset_X[:-int(len(self.labelset_X)/10.0)]
+        self.labelset_Y = self.labelset_Y[:-int(len(self.labelset_X)/10.0)]
     def main(self,thres_len_un=2000):
         T = 20
-        for t in range(20):
+        EPOCHS = 500
+        for t in range(T):
             # logging.info(f"unlabelset_X.shape[0]:{self.unlabelset_X.shape[0]}")
             logging.info(f"第{t}次循环")
             logging.info("1000个数据训练 model0   ##################################")
-            self.model0 = self.train(self.model0, self.labelset_X, self.labelset_Y,TOTAL_EPOCHS=20)
+            self.model0 = self.train(self.model0, self.labelset_X, self.labelset_Y,TOTAL_EPOCHS=EPOCHS,test_loader=self.test_loader)
             
             self.unlabelset_Y = self.label(self.unlabelset_X, self.model0)
             self.concat_X = torch.concat((self.unlabelset_X, self.labelset_X), dim=0)
             self.concat_Y = torch.concat((self.unlabelset_Y, self.labelset_Y), dim=0)
             logging.info("混合数据训练 model0   ##################################")
-            self.model0 = self.train(self.model0, self.concat_X,self.concat_Y, TOTAL_EPOCHS=20)
+            self.model0 = self.train(self.model0, self.concat_X,self.concat_Y, TOTAL_EPOCHS=EPOCHS,test_loader=self.test_loader)
             # self.get_new_set()
             # t = i + 1
-        self.model_last = self.model0
+        # self.model_last = self.model0
 
 
-    def train(self, model, train_X, train_Y, BATCH_SIZE=100, LEARNING_RATE=0.001, TOTAL_EPOCHS=50, change_learning_rate_epochs=100):
+    def train(self, model, train_X, train_Y, BATCH_SIZE=100, LEARNING_RATE=0.001, TOTAL_EPOCHS=50, change_learning_rate_epochs=100, test_loader=None):
         model = model.to(self.device)
         train_dataset = MyDataset(train_X,train_Y,split_ratio=0)
+
         train_loader = DataLoader(dataset=train_dataset,
                                                 batch_size=BATCH_SIZE,
                                                 shuffle=True)  # shuffle 标识要打乱顺序
         criterion = nn.MSELoss().to(self.device)
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
-        for epoch in range(TOTAL_EPOCHS):
-            model.train()       
-            optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
-            # Learning rate decay
-            if (epoch + 1) % change_learning_rate_epochs == 0:
-                optimizer.param_groups[0]['lr'] /= 2 
-                logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
-            
-            #Training in this epoch  
-            loss_avg = 0
-            for i, (x, y) in enumerate(train_loader):
-                x = x.float().to(self.device)
-                y = y.float().to(self.device)
+        if test_loader == None:
+            for epoch in range(TOTAL_EPOCHS):
+                model.train()       
+                optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
+                # Learning rate decay
+                if (epoch + 1) % change_learning_rate_epochs == 0:
+                    optimizer.param_groups[0]['lr'] /= 2 
+                    logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
                 
-                # 清零
-                optimizer.zero_grad()
-                output = model(x)
-                # 计算损失函数
-                loss = criterion(output, y)
-                loss.backward()
-                optimizer.step()
+                #Training in this epoch  
+                loss_avg = 0
+                for i, (x, y) in enumerate(train_loader):
+                    x = x.float().to(self.device)
+                    y = y.float().to(self.device)
+                    
+                    # 清零
+                    optimizer.zero_grad()
+                    output = model(x)
+                    # 计算损失函数
+                    loss = criterion(output, y)
+                    loss.backward()
+                    optimizer.step()
+                    
+                    loss_avg += loss.item() 
+                    
+                loss_avg /= len(train_loader)
+                logging.info('Epoch : %d/%d, Loss: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg))
+        else:
+            for epoch in range(TOTAL_EPOCHS):
+                model.train()       
+                optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
                 
-                loss_avg += loss.item() 
+                # Learning rate decay
+                if (epoch + 1) % change_learning_rate_epochs == 0:
+                    optimizer.param_groups[0]['lr'] /= 2 
+                    logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
                 
-            loss_avg /= len(train_loader)
-            logging.info('Epoch : %d/%d, Loss: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg))
+                #Training in this epoch  
+                loss_avg = 0
+                for i, (x, y) in enumerate(train_loader):
+                    x = x.float().to(self.device)
+                    y = y.float().to(self.device)
+                    
+                    # 清零
+                    optimizer.zero_grad()
+                    output = model(x)
+                    # 计算损失函数
+                    loss = criterion(output, y)
+                    loss.backward()
+                    optimizer.step()
+                    
+                    loss_avg += loss.item() 
+                    
+                loss_avg /= len(train_loader)
+                
+                #Testing in this epoch
+                model.eval()
+                test_avg = 0
+                for i, (x, y) in enumerate(test_loader):
+                    x = x.float().to(self.device)
+                    y = y.float().to(self.device)
+
+                    output = model(x)
+                    # 计算损失函数
+                    loss_test = criterion(output, y)
+                    test_avg += loss_test.item() 
+                
+                test_avg /= len(test_loader)
+                
+                if test_avg < self.test_avg_min:
+                    logging.info('Model saved!')
+                    self.test_avg_min = test_avg
+                    model.to("cuda:0")
+                    torch.save(model.state_dict(), model_save)
+                    model.to(self.device)
+                logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,self.test_avg_min))
         return model
 
     def split_unlabelset(self, ):
@@ -241,15 +272,18 @@ if __name__ == '__main__':
     np.random.shuffle(index_U)
     trainX_unlabeled = trainX_unlabeled[index_U]
     
-    ssl = SSL(labelset_X=trainX_labeled, labelset_Y=trainY_labeled, unlabelset_X=trainX_unlabeled, device=DEVICE)
+
+
+    
+    ssl = SSL(labelset_X=trainX_labeled, labelset_Y=trainY_labeled, unlabelset_X=trainX_unlabeled, device=DEVICE, model_save=model_save)
     ssl.main()
-    ssl.model_last = ssl.model_last.to("cuda:0")
-    torch.save(ssl.model_last.state_dict(), model_save)
+    # ssl.model_last = ssl.model_last.to("cuda:0")
+    # torch.save(ssl.model_last.state_dict(), model_save)
 
-    np.save('unlabelset_X.npy', ssl.unlabelset_X.to('cpu').numpy())
-    np.save('labelset_X.npy', ssl.labelset_X.to('cpu').numpy())
-    np.save('labelset_Y.npy', ssl.labelset_Y.to('cpu').numpy())
+    # np.save('unlabelset_X.npy', ssl.unlabelset_X.to('cpu').numpy())
+    # np.save('labelset_X.npy', ssl.labelset_X.to('cpu').numpy())
+    # np.save('labelset_Y.npy', ssl.labelset_Y.to('cpu').numpy())
 
-    logging.info(f"ssl.unlabelset_X.shape:{ssl.unlabelset_X.shape}")
-    logging.info(f"ssl.labelset_X.shape:{ssl.labelset_X.shape}")
-    logging.info(f"ssl.labelset_Y.shape:{ssl.labelset_Y.shape}")
+    # logging.info(f"ssl.unlabelset_X.shape:{ssl.unlabelset_X.shape}")
+    # logging.info(f"ssl.labelset_X.shape:{ssl.labelset_X.shape}")
+    # logging.info(f"ssl.labelset_Y.shape:{ssl.labelset_Y.shape}")

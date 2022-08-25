@@ -6,6 +6,9 @@
 # 模型集成bagging，5折
 # 把模型变大
 # 时域频域变换
+# 归0的和不归0的，数据扩增，或许还能用在model2
+from utils import seed_everything
+
 from copy import copy
 import h5py
 import numpy as np
@@ -18,7 +21,9 @@ import logging
 import argparse
 import os
 from shutil import copyfile
-from utils import seed_everything
+
+
+from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -59,7 +64,7 @@ class MyTestset(Dataset):
  
 
 
-BATCH_SIZE = 100
+# BATCH_SIZE = 100
 LEARNING_RATE = 0.001
 TOTAL_EPOCHS = 10000
 split_ratio = 0.1
@@ -75,7 +80,12 @@ if __name__ == '__main__':
     """命令行参数"""
     parser = argparse.ArgumentParser()
     parser.add_argument('--submit_id', type=str, required=True)
+    parser.add_argument('--cuda', default=0)
+    parser.add_argument('--bs', type=int, default=32)
     args = parser.parse_args()
+    """注意评测设备只有一块gpu"""
+    DEVICE=torch.device(f"cuda:{args.cuda}")
+    BATCH_SIZE = args.bs
     """保存好要提交的文件、训练代码、训练日志"""
     id_path = os.path.join('submit',str(args.submit_id))
     if not os.path.exists(id_path):
@@ -121,16 +131,17 @@ if __name__ == '__main__':
     criterion = nn.MSELoss().to(DEVICE)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
-    
+    scheduler = StepLR(optimizer, step_size=30, gamma=0.9)
+    # scheduler = ReduceLROnPlateau(optimizer, factor=0.5)
     test_avg_min = 10000;
     for epoch in range(TOTAL_EPOCHS):
         model.train()       
-        optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
+        # optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
         
         # Learning rate decay
-        if (epoch + 1) % change_learning_rate_epochs == 0:
-            optimizer.param_groups[0]['lr'] /= 2 
-            logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
+        # if (epoch + 1) % change_learning_rate_epochs == 0:
+        #     optimizer.param_groups[0]['lr'] /= 2 
+        logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
            
         #Training in this epoch  
         loss_avg = 0
@@ -147,7 +158,7 @@ if __name__ == '__main__':
             optimizer.step()
             
             loss_avg += loss.item() 
-            
+         
         loss_avg /= len(train_loader)
         
         #Testing in this epoch
@@ -163,7 +174,10 @@ if __name__ == '__main__':
             test_avg += loss_test.item() 
         
         test_avg /= len(test_loader)
-       
+
+        """更新学习率"""
+        scheduler.step(test_avg) 
+
         if test_avg < test_avg_min:
             logging.info('Model saved!')
             test_avg_min = test_avg
