@@ -3,3 +3,9 @@ __pycache__
 submit/*
 *npy
 *.pth
+b.jpg
+a.jpg
+nohup.out
+.gitignore
+nohup2.out
+xm/
