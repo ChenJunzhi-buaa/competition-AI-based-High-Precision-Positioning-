@@ -18,6 +18,8 @@ import os
 from shutil import copyfile
 import argparse
 from utils import seed_everything
+from datetime import datetime
+import copy
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -58,26 +60,31 @@ class MyTestset(Dataset):
  
 
 
-BATCH_SIZE = 100
-LEARNING_RATE = 0.001
-TOTAL_EPOCHS = 4000
+# BATCH_SIZE = 100
+# LEARNING_RATE = 0.001
+TOTAL_EPOCHS = 10000
 split_ratio = 0.1
 change_learning_rate_epochs = 100
 
 
-
-
+DEVICE=torch.device("cpu")
+if torch.cuda.is_available():
+        DEVICE=torch.device("cuda:0")
 
 
 if __name__ == '__main__':
-
+    """命令行参数"""
     parser = argparse.ArgumentParser()
     parser.add_argument('--submit_id', type=str, required=True)
     parser.add_argument('--cuda', default=0)
+    parser.add_argument('--bs', type=int, default=256)
+    parser.add_argument('--lr', type=float, default=0.001)
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
-
+    BATCH_SIZE = args.bs
+    LEARNING_RATE = args.lr
+    """保存好要提交的文件、训练代码、训练日志"""
     id_path = os.path.join('submit',str(args.submit_id))
     if not os.path.exists(id_path):
         os.mkdir(id_path)
@@ -85,14 +92,16 @@ if __name__ == '__main__':
     if not os.path.exists(submit_path):
         os.mkdir(submit_path)
     logging.basicConfig(filename=os.path.join(id_path,"model2_log.txt"), filemode='w', level=logging.DEBUG)
+    logging.info(datetime.now())
+    logging.info(args)
     model_save = os.path.join(submit_path,'modelSubmit_2.pth')
     copyfile('pytorch_Template/modelDesign_2.py', os.path.join(submit_path, 'modelDesign_2.py'))
     copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
-
+    """设置随机数种子"""
     seed_value = 1
     seed_everything(seed_value=seed_value)
     logging.info(f'seed_value:{seed_value}')
-
+    """加载数据"""
     file_name1 = 'data/Case_3_Training.npy'
     logging.info('The current dataset is : %s'%(file_name1))
     CIR = np.load(file_name1)
@@ -114,22 +123,52 @@ if __name__ == '__main__':
     trainX_unlabeled = trainX_unlabeled[index_U]
 
 
-    model = Model_2()
     
-    model = model.to(DEVICE)
-    logging.info(model)
-    logging.info('######################################################################')
-    logging.info('标签数据训练出一个最佳模型')
-    train_dataset = MyDataset(trainX_labeled,trainY_labeled,split_ratio)
+    """分出测试集"""
+    test_trainX_labeled = trainX_labeled[0:int(split_ratio*len(trainX_labeled))]
+    test_trainY_labeled = trainY_labeled[0:int(split_ratio*len(trainY_labeled))]
+
+    """分出训练集"""
+    trainX_labeled = trainX_labeled[int(split_ratio*len(trainX_labeled)):]
+    trainY_labeled = trainY_labeled[int(split_ratio*len(trainY_labeled)):]
+    """训练集数据扩增"""
+    trainY_labeled_aug = trainY_labeled
+    trainX_labeled_aug = trainX_labeled
+    # for i in range(len(trainX_labeled)):
+    for j in range(9):
+        delete_num = np.random.choice(range(1,15),1)
+        mask = np.random.choice(18,delete_num,replace=False)
+        mask = np.concatenate((mask*4, mask*4+1, mask*4+2, mask*4+3))
+        X = copy.deepcopy(trainX_labeled)
+        X[:, :, mask, : ] = 0
+        trainX_labeled_aug = np.concatenate((trainX_labeled_aug, X), axis = 0)
+        trainY_labeled_aug = np.concatenate((trainY_labeled_aug, trainY_labeled), axis = 0)
+    train_dataset = MyDataset(trainX_labeled_aug,trainY_labeled_aug,split_ratio=0)
     train_loader = DataLoader(dataset=train_dataset,
                                                batch_size=BATCH_SIZE,
                                                shuffle=True)  # shuffle 标识要打乱顺序
-    test_dataset = MyTestset(trainX_labeled,trainY_labeled,split_ratio)
+    test_dataset = MyDataset(test_trainX_labeled,test_trainY_labeled,split_ratio=0)
     test_loader = DataLoader(dataset=test_dataset,
                                                batch_size=BATCH_SIZE,
                                                shuffle=True)  # shuffle 标识要打乱顺序
-    criterion = nn.MSELoss().to(DEVICE)
     
+    # train_dataset = MyDataset(trainX_labeled,trainY_labeled,split_ratio)
+    # train_loader = DataLoader(dataset=train_dataset,
+    #                                            batch_size=BATCH_SIZE,
+    #                                            shuffle=True)  # shuffle 标识要打乱顺序
+    # test_dataset = MyTestset(trainX_labeled,trainY_labeled,split_ratio)
+    # test_loader = DataLoader(dataset=test_dataset,
+    #                                            batch_size=BATCH_SIZE,
+    #                                            shuffle=True)  # shuffle 标识要打乱顺序
+
+
+
+
+    criterion = nn.MSELoss().to(DEVICE)
+    """加载模型"""
+    model = Model_2(no_grad=False)
+    model = model.to(DEVICE)
+    logging.info(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
     
     test_avg_min = 10000;
@@ -140,7 +179,7 @@ if __name__ == '__main__':
         # Learning rate decay
         if (epoch + 1) % change_learning_rate_epochs == 0:
             optimizer.param_groups[0]['lr'] /= 2 
-            logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
+        logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
            
         #Training in this epoch  
         loss_avg = 0
