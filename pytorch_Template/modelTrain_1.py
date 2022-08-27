@@ -21,7 +21,7 @@ import logging
 import argparse
 import os
 from shutil import copyfile
-
+from datetime import datetime
 
 from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
 class MyDataset(Dataset):
@@ -65,7 +65,7 @@ class MyTestset(Dataset):
 
 
 # BATCH_SIZE = 100
-LEARNING_RATE = 0.001
+# LEARNING_RATE = 0.001
 TOTAL_EPOCHS = 10000
 split_ratio = 0.1
 change_learning_rate_epochs = 100
@@ -81,11 +81,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--submit_id', type=str, required=True)
     parser.add_argument('--cuda', default=0)
-    parser.add_argument('--bs', type=int, default=32)
+    parser.add_argument('--bs', type=int, default=256)
+    parser.add_argument('--lr', type=float, default=0.001)
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
     BATCH_SIZE = args.bs
+    LEARNING_RATE = args.lr
     """保存好要提交的文件、训练代码、训练日志"""
     id_path = os.path.join('submit',str(args.submit_id))
     if not os.path.exists(id_path):
@@ -94,6 +96,8 @@ if __name__ == '__main__':
     if not os.path.exists(submit_path):
         os.mkdir(submit_path)
     logging.basicConfig(filename=os.path.join(id_path,"model1_log.txt"), filemode='w', level=logging.DEBUG)
+    logging.info(datetime.now())
+    logging.info(args)
     model_save = os.path.join(submit_path,'modelSubmit_1.pth')
     copyfile('pytorch_Template/modelDesign_1.py', os.path.join(submit_path, 'modelDesign_1.py'))
     copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
@@ -115,8 +119,8 @@ if __name__ == '__main__':
     np.random.shuffle(index)
     trainX = trainX[index]
     trainY = trainY[index]
-
-    model = Model_1()
+    """加载模型"""
+    model = Model_1(no_grad=False)
     model = model.to(DEVICE)
     logging.info(model)
     
@@ -131,8 +135,8 @@ if __name__ == '__main__':
     criterion = nn.MSELoss().to(DEVICE)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
-    scheduler = StepLR(optimizer, step_size=30, gamma=0.9)
-    # scheduler = ReduceLROnPlateau(optimizer, factor=0.5)
+    # scheduler = StepLR(optimizer, step_size=30, gamma=0.9)
+    scheduler = ReduceLROnPlateau(optimizer, factor=0.8, patience=30,)
     test_avg_min = 10000;
     for epoch in range(TOTAL_EPOCHS):
         model.train()       
@@ -188,3 +192,4 @@ if __name__ == '__main__':
             model.to(DEVICE)
         logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
 
+logging.info(datetime.now())
