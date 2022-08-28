@@ -102,7 +102,7 @@ if __name__ == '__main__':
     copyfile('pytorch_Template/modelDesign_1.py', os.path.join(submit_path, 'modelDesign_1.py'))
     copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
     """设置随机数种子"""
-    seed_value = 1
+    seed_value = 42
     seed_everything(seed_value=seed_value)
     logging.info(f'seed_value:{seed_value}')
     """加载数据"""

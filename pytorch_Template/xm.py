@@ -53,7 +53,7 @@ if torch.cuda.is_available():
 
 ##########################
 # Model loading
-model_address = '/home1/cjz/location/submit/20/submit_pt/modelSubmit_2.pth'
+model_address = '/home1/cjz/location/submit/39/submit_pt/modelSubmit_2.pth'
 model = Model_2()
 model.load_state_dict(torch.load(model_address))
 model_loaded =model.to(DEVICE)

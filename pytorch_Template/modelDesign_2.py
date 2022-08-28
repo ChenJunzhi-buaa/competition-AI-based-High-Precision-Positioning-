@@ -110,9 +110,9 @@ class Model_2(nn.Module):
                 _out = []
                 for i in range(0,x.shape[0],self.infer_batchsize):
                     if i+self.infer_batchsize <= x.shape[0]:
-                        batch_out = x[i:i+self.infer_batchsize]
+                        batch_out = self._forward(x[i:i+self.infer_batchsize])
                     else:
-                        batch_out = x[i:]
+                        batch_out = self._forward(x[i:])
                     _out.append(batch_out)
                 out = torch.cat(_out, axis=0)
         else:

@@ -135,7 +135,7 @@ if __name__ == '__main__':
     trainY_labeled_aug = trainY_labeled
     trainX_labeled_aug = trainX_labeled
     # for i in range(len(trainX_labeled)):
-    for j in range(9):
+    for j in range(19):
         delete_num = np.random.choice(range(1,15),1)
         mask = np.random.choice(18,delete_num,replace=False)
         mask = np.concatenate((mask*4, mask*4+1, mask*4+2, mask*4+3))
