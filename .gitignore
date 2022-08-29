@@ -1,0 +1,10 @@
+data/*
+__pycache__
+submit/*
+*npy
+*.pth
+b.jpg
+a.jpg
+*.out
+xm/
+.fuse_hidden*
