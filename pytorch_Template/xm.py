@@ -10,7 +10,7 @@ from modelDesign_2 import Model_2
 
 DEVICE=torch.device("cpu")
 if torch.cuda.is_available():
-        DEVICE=torch.device("cuda:0")
+        DEVICE=torch.device("cuda:3")
 
 ##########################
 # # Model loading
@@ -53,9 +53,9 @@ if torch.cuda.is_available():
 
 ##########################
 # Model loading
-model_address = '/home1/cjz/location/submit/39/submit_pt/modelSubmit_2.pth'
+model_address = './submit/40/submit_pt/modelSubmit_2.pth'
 model = Model_2()
-model.load_state_dict(torch.load(model_address))
+model.load_state_dict(torch.load(model_address, map_location=DEVICE))
 model_loaded =model.to(DEVICE)
 
 ##########################

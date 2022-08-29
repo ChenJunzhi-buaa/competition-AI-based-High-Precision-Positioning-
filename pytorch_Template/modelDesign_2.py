@@ -75,6 +75,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision.models import resnet18,resnet34
+import random,os
+import copy
 class Model_2(nn.Module):
     def __init__(self, no_grad=True, infer_batchsize=256):
         super(Model_2, self).__init__()
@@ -101,7 +103,30 @@ class Model_2(nn.Module):
         
 
         return self.net(x)
-
+    def _tta_forward(self, x, num=5):
+        # def seed_everything(seed_value):
+        #     random.seed(seed_value)
+        #     np.random.seed(seed_value)
+        #     torch.manual_seed(seed_value)
+        #     os.environ['PYTHONHASHSEED'] = str(seed_value)
+            
+        #     if torch.cuda.is_available(): 
+        #         torch.cuda.manual_seed(seed_value)
+        #         torch.cuda.manual_seed_all(seed_value)
+        #         torch.backends.cudnn.deterministic = True
+        #         torch.backends.cudnn.benchmark = False
+        #         torch.backends.cudnn.enabled = False
+        # seed_everything(seed_value=42)
+        out = self._forward(x)
+        for i in range(num-1):
+            delete_num = np.random.choice(range(1,15),1)
+            mask = np.random.choice(18,delete_num,replace=False)
+            mask = np.concatenate((mask*4, mask*4+1, mask*4+2, mask*4+3))
+            x_copy = copy.deepcopy(x)
+            x_copy[:, :, mask, : ] = 0
+            out = out + self._forward(x_copy)
+        out = out/num
+        return out
     def forward(self, x, data_format='channels_last'):
         if self.no_grad == True:
             self.eval()
@@ -110,15 +135,36 @@ class Model_2(nn.Module):
                 _out = []
                 for i in range(0,x.shape[0],self.infer_batchsize):
                     if i+self.infer_batchsize <= x.shape[0]:
-                        batch_out = self._forward(x[i:i+self.infer_batchsize])
+                        batch_out = self._tta_forward(x[i:i+self.infer_batchsize])
                     else:
-                        batch_out = self._forward(x[i:])
+                        batch_out = self._tta_forward(x[i:])
                     _out.append(batch_out)
                 out = torch.cat(_out, axis=0)
         else:
             out = self._forward(x)
         
         return out
+    def data_aug(self, x, aug_times=10, y=None):
+        # TODO 1、mask掉时间维度，2、mask数量随机
+        """固定mask掉一半的基站"""
+        # x.shape = bs,256,72,2
+        x_aug = copy.deepcopy(x)
+        if y is not None:
+            y_aug = copy.deepcopy(y)
+        for j in range(aug_times - 1):
+            x_copy = copy.deepcopy(x)
+            for i in range(x.shape[0]):
+                delete_num  = int( x.shape[2] / 4 / 2 )
+                base_mask = np.random.choice(18,delete_num,replace=False)
+                mask = np.concatenate((base_mask*4, base_mask*4+1, base_mask*4+2, base_mask*4+3))
+                x_copy[i,:,mask,:] = 0
+            x_aug = np.concatenate((x_aug, x_copy), axis = 0)
+            if y is not None:
+                y_aug = np.concatenate((y_aug, y), axis = 0)
+        if y is not None:
+            return x_aug, y_aug 
+        else:
+            return x_aug
 
 """transformer"""
 # import h5py
