@@ -74,7 +74,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from torchvision.models import resnet18,resnet34
+from torchvision.models import resnet18,resnet34,resnet50
 import random,os
 import copy
 class Model_2(nn.Module):
@@ -83,11 +83,11 @@ class Model_2(nn.Module):
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
         if self.no_grad == True:
-            resnet = resnet34(pretrained=False,)
+            resnet = resnet50(pretrained=False,)
         else:
-            resnet = resnet34(pretrained=True,)
+            resnet = resnet50(pretrained=True,)
         # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
-        resnet.fc = nn.Linear(512,2)
+        resnet.fc = nn.Linear(2048,2)
         self.net = nn.Sequential(
             # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
             resnet
@@ -96,10 +96,16 @@ class Model_2(nn.Module):
 
 
     def _forward(self, x, data_format='channels_last'):
-
-        x = x.norm(dim=-1)
-        x = x.unsqueeze(1)
-        x = x.repeat(1,3,1,1)
+        
+        """方式1：幅值复制三份"""
+        # x = x.norm(dim=-1)
+        # x = x.unsqueeze(1)
+        # x = x.repeat(1,3,1,1)
+        """方式2：实部虚部幅值"""
+        x_norm = x.norm(dim=-1)
+        x_norm = x_norm.unsqueeze(3)
+        x = torch.cat((x,x_norm),dim=3)
+        x = x.permute(0,3,1,2)
         
 
         return self.net(x)
@@ -117,16 +123,23 @@ class Model_2(nn.Module):
         #         torch.backends.cudnn.benchmark = False
         #         torch.backends.cudnn.enabled = False
         # seed_everything(seed_value=42)
+        # out = self._forward(x)
+        # for i in range(num-1):
+        #     delete_num = np.random.choice(range(1,15),1)
+        #     mask = np.random.choice(18,delete_num,replace=False)
+        #     mask = np.concatenate((mask*4, mask*4+1, mask*4+2, mask*4+3))
+        #     x_copy = copy.deepcopy(x)
+        #     x_copy[:, :, mask, : ] = 0
+        #     out = out + self._forward(x_copy)
+        # out = out/num
         out = self._forward(x)
-        for i in range(num-1):
-            delete_num = np.random.choice(range(1,15),1)
-            mask = np.random.choice(18,delete_num,replace=False)
-            mask = np.concatenate((mask*4, mask*4+1, mask*4+2, mask*4+3))
-            x_copy = copy.deepcopy(x)
-            x_copy[:, :, mask, : ] = 0
-            out = out + self._forward(x_copy)
-        out = out/num
+        aug_times = 10
+        x_aug = self.data_aug(x, aug_times=aug_times)
+        for i in range(1, aug_times):
+            out = out + self._forward(x_aug[i*(x.shape[0]):(i+1)*(x.shape[0])])
+        out = out / aug_times
         return out
+
     def forward(self, x, data_format='channels_last'):
         if self.no_grad == True:
             self.eval()
@@ -135,9 +148,9 @@ class Model_2(nn.Module):
                 _out = []
                 for i in range(0,x.shape[0],self.infer_batchsize):
                     if i+self.infer_batchsize <= x.shape[0]:
-                        batch_out = self._tta_forward(x[i:i+self.infer_batchsize])
+                        batch_out = self._forward(x[i:i+self.infer_batchsize])
                     else:
-                        batch_out = self._tta_forward(x[i:])
+                        batch_out = self._forward(x[i:])
                     _out.append(batch_out)
                 out = torch.cat(_out, axis=0)
         else:
@@ -158,9 +171,9 @@ class Model_2(nn.Module):
                 base_mask = np.random.choice(18,delete_num,replace=False)
                 mask = np.concatenate((base_mask*4, base_mask*4+1, base_mask*4+2, base_mask*4+3))
                 x_copy[i,:,mask,:] = 0
-            x_aug = np.concatenate((x_aug, x_copy), axis = 0)
+            x_aug = torch.cat((x_aug, x_copy), axis = 0)
             if y is not None:
-                y_aug = np.concatenate((y_aug, y), axis = 0)
+                y_aug = torch.cat((y_aug, y), axis = 0)
         if y is not None:
             return x_aug, y_aug 
         else:

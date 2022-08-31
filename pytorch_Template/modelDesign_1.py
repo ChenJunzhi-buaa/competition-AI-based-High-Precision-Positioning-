@@ -74,7 +74,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from torchvision.models import resnet18,resnet34
+from torchvision.models import resnet18,resnet34,resnet50
 class Model_1(nn.Module):
     def __init__(self, no_grad=True, infer_batchsize=256):
         super(Model_1, self).__init__()
@@ -102,11 +102,16 @@ class Model_1(nn.Module):
         """方式2：去掉不用通道"""
         # x = torch.concat((x[:,:,0:4,:], x[:,:,20:24,:], x[:,:,48:52,:], x[:,:,68:,:]), dim=2)
         x = torch.cat((x[:,:,0:4,:], x[:,:,20:24,:], x[:,:,48:52,:], x[:,:,68:,:]), dim=2)
-
-        x = x.norm(dim=-1)
-        x = x.unsqueeze(1)
-        x = x.repeat(1,3,1,1)
         
+        """方式1：幅值复制三份"""
+        # x = x.norm(dim=-1)
+        # x = x.unsqueeze(1)
+        # x = x.repeat(1,3,1,1)
+        """方式2：实部虚部幅值"""
+        x_norm = x.norm(dim=-1)
+        x_norm = x_norm.unsqueeze(3)
+        x = torch.cat((x,x_norm),dim=3)
+        x = x.permute(0,3,1,2)
 
         return self.net(x)
 

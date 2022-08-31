@@ -25,8 +25,8 @@ class MyDataset(Dataset):
         N = trainX.shape[0]
        
         TrainNum = int((N*(1-split_ratio)))
-        self.x = trainX[:TrainNum].astype(np.float32)
-        self.y = trainY[:TrainNum].astype(np.float32)
+        self.x = trainX[:TrainNum].float()
+        self.y = trainY[:TrainNum].float()
 
         self.len = len(self.y)
 
@@ -44,8 +44,8 @@ class MyTestset(Dataset):
         N = trainX.shape[0]
        
         TrainNum = int((N*(1-split_ratio)))
-        self.x = trainX[TrainNum:].astype(np.float32)
-        self.y = trainY[TrainNum:].astype(np.float32)
+        self.x = trainX[TrainNum:].float()
+        self.y = trainY[TrainNum:].float()
 
         self.len = len(self.y)
 
@@ -77,8 +77,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--submit_id', type=str, required=True)
     parser.add_argument('--cuda', default=0)
-    parser.add_argument('--bs', type=int, default=256)
+    parser.add_argument('--bs', type=int, default=32)
     parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--weight_decay', type=float, default=1e-4)
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
@@ -113,6 +114,12 @@ if __name__ == '__main__':
     POS = np.load(file_name2)
     trainY_labeled = POS.transpose((1,0)) #[none, 2]
 
+    """转化为tensor"""
+    trainX_labeled = torch.tensor(trainX_labeled)
+    trainY_labeled = torch.tensor(trainY_labeled)
+    trainX_unlabeled = torch.tensor(trainX_unlabeled)
+
+
     """打乱数据顺序"""
     index_L = np.arange(len(trainX_labeled))
     np.random.shuffle(index_L)
@@ -132,21 +139,10 @@ if __name__ == '__main__':
     trainX_labeled = trainX_labeled[int(split_ratio*len(trainX_labeled)):]
     trainY_labeled = trainY_labeled[int(split_ratio*len(trainY_labeled)):]
     """训练集数据扩增"""
-    # trainY_labeled_aug = trainY_labeled
-    # trainX_labeled_aug = trainX_labeled
-    # # for i in range(len(trainX_labeled)):
-    # for j in range(19):
-    #     delete_num = np.random.choice(range(1,15),1)
-    #     mask = np.random.choice(18,delete_num,replace=False)
-    #     mask = np.concatenate((mask*4, mask*4+1, mask*4+2, mask*4+3))
-    #     X = copy.deepcopy(trainX_labeled)
-    #     X[:, :, mask, : ] = 0
-    #     trainX_labeled_aug = np.concatenate((trainX_labeled_aug, X), axis = 0)
-    #     trainY_labeled_aug = np.concatenate((trainY_labeled_aug, trainY_labeled), axis = 0)
-    trainX_labeled_aug, trainY_labeled_aug = Model_2().data_aug(x = trainX_labeled, y = trainY_labeled)
+    # trainX_labeled, trainY_labeled = Model_2().data_aug(x = trainX_labeled, y = trainY_labeled)
     """测试集数据扩增"""
-    test_trainX_labeled, test_trainY_labeled = Model_2().data_aug(x = test_trainX_labeled, y = test_trainY_labeled)
-    train_dataset = MyDataset(trainX_labeled_aug,trainY_labeled_aug,split_ratio=0)
+    # test_trainX_labeled, test_trainY_labeled = Model_2().data_aug(x = test_trainX_labeled, y = test_trainY_labeled)
+    train_dataset = MyDataset(trainX_labeled,trainY_labeled,split_ratio=0)
     train_loader = DataLoader(dataset=train_dataset,
                                                batch_size=BATCH_SIZE,
                                                shuffle=True)  # shuffle 标识要打乱顺序
@@ -172,7 +168,7 @@ if __name__ == '__main__':
     model = Model_2(no_grad=False)
     model = model.to(DEVICE)
     logging.info(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=args.weight_decay)
     
     test_avg_min = 10000;
     for epoch in range(TOTAL_EPOCHS):
