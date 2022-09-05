@@ -20,6 +20,7 @@ import argparse
 from utils import seed_everything
 from datetime import datetime
 import copy
+from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -63,7 +64,7 @@ class MyTestset(Dataset):
 # BATCH_SIZE = 100
 # LEARNING_RATE = 0.001
 TOTAL_EPOCHS = 10000
-split_ratio = 0.1
+# split_ratio = 0.1
 change_learning_rate_epochs = 100
 
 
@@ -80,11 +81,16 @@ if __name__ == '__main__':
     parser.add_argument('--bs', type=int, default=32)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
+    parser.add_argument('--rlrp', default=False, action='store_true' )
+    parser.add_argument('--sr', default=0.1, type=float, help='split_ratio' )
+    parser.add_argument('--seed', default=1, type=int )
+    
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
     BATCH_SIZE = args.bs
     LEARNING_RATE = args.lr
+    split_ratio = args.sr
     """保存好要提交的文件、训练代码、训练日志"""
     id_path = os.path.join('submit',str(args.submit_id))
     if not os.path.exists(id_path):
@@ -99,7 +105,7 @@ if __name__ == '__main__':
     copyfile('pytorch_Template/modelDesign_2.py', os.path.join(submit_path, 'modelDesign_2.py'))
     copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
     """设置随机数种子"""
-    seed_value = 1
+    seed_value = args.seed
     seed_everything(seed_value=seed_value)
     logging.info(f'seed_value:{seed_value}')
     """加载数据"""
@@ -171,13 +177,17 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=args.weight_decay)
     
     test_avg_min = 10000;
+    if args.rlrp == True:
+        scheduler = ReduceLROnPlateau(optimizer, factor=0.8, patience=30,)
     for epoch in range(TOTAL_EPOCHS):
-        model.train()       
-        optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
-        
-        # Learning rate decay
-        if (epoch + 1) % change_learning_rate_epochs == 0:
-            optimizer.param_groups[0]['lr'] /= 2 
+        model.train()     
+        if args.rlrp == False:
+          
+            optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
+            # Learning rate decay
+            if (epoch + 1) % change_learning_rate_epochs == 0:
+                optimizer.param_groups[0]['lr'] /= 2 
+
         logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
            
         #Training in this epoch  
@@ -211,7 +221,9 @@ if __name__ == '__main__':
             test_avg += loss_test.item() 
         
         test_avg /= len(test_loader)
-        
+        """更新学习率"""
+        if args.rlrp == True:
+            scheduler.step(test_avg) 
         if test_avg < test_avg_min:
             logging.info('Model saved!')
             test_avg_min = test_avg
@@ -219,3 +231,4 @@ if __name__ == '__main__':
             torch.save(model.state_dict(), model_save)
             model.to(DEVICE)
         logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
+logging.info(datetime.now())

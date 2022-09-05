@@ -22,8 +22,9 @@ import argparse
 import os
 from shutil import copyfile
 from datetime import datetime
+import copy
 
-from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
+from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau,CosineAnnealingLR,CosineAnnealingWarmRestarts
 class MyDataset(Dataset):
     def __init__(self, trainX,trainY,split_ratio):
         N = trainX.shape[0]
@@ -83,11 +84,18 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', default=0)
     parser.add_argument('--bs', type=int, default=256)
     parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--weight_decay', type=float, default=2e-4)
+    parser.add_argument('--rlrp', default=False, action='store_true', help = 'ReduceLROnPlateau' )
+    parser.add_argument('--calr', default=False, action='store_true', help = 'CosineAnnealingLR' )
+    parser.add_argument('--cawr', default=False, action='store_true', help = 'CosineAnnealingWarmRestarts' )
+    parser.add_argument('--sr', default=0.1, type=float, help='split_ratio' )
+    parser.add_argument('--seed', default=42, type=int )
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
     BATCH_SIZE = args.bs
     LEARNING_RATE = args.lr
+    split_ratio = args.sr
     """保存好要提交的文件、训练代码、训练日志"""
     id_path = os.path.join('submit',str(args.submit_id))
     if not os.path.exists(id_path):
@@ -102,7 +110,7 @@ if __name__ == '__main__':
     copyfile('pytorch_Template/modelDesign_1.py', os.path.join(submit_path, 'modelDesign_1.py'))
     copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
     """设置随机数种子"""
-    seed_value = 42
+    seed_value = args.seed
     seed_everything(seed_value=seed_value)
     logging.info(f'seed_value:{seed_value}')
     """加载数据"""
@@ -114,6 +122,16 @@ if __name__ == '__main__':
     logging.info('The current dataset is : %s'%(file_name2))
     POS = np.load(file_name2)
     trainY = POS.transpose((1,0)) #[none, 2]
+
+
+    """数据扩增"""
+    # trainX_copy = copy.deepcopy(trainX)
+    # trainX_copy[:,:,4:20,:]=0
+    # trainX_copy[:,:,24:48,:]=0
+    # trainX_copy[:,:,52:68,:]=0
+    # trainX = np.concatenate((trainX, trainX_copy), axis=0)
+    # trainY = np.concatenate((trainY, trainY), axis=0)
+    
     """打乱数据顺序"""
     index = np.arange(len(trainX))
     np.random.shuffle(index)
@@ -134,17 +152,23 @@ if __name__ == '__main__':
                                                shuffle=True)  # shuffle 标识要打乱顺序
     criterion = nn.MSELoss().to(DEVICE)
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=2e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=args.weight_decay)
     # scheduler = StepLR(optimizer, step_size=30, gamma=0.9)
-    scheduler = ReduceLROnPlateau(optimizer, factor=0.8, patience=30,)
+    if args.rlrp == True:
+        scheduler = ReduceLROnPlateau(optimizer, factor=0.8, patience=30,)
+    if args.calr == True:
+        scheduler = CosineAnnealingLR(optimizer, T_max=100)
+    if args.cawr == True:
+        scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=100, T_mult=2)
     test_avg_min = 10000;
     for epoch in range(TOTAL_EPOCHS):
         model.train()       
-        # optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
-        
-        # Learning rate decay
-        # if (epoch + 1) % change_learning_rate_epochs == 0:
-        #     optimizer.param_groups[0]['lr'] /= 2 
+        if args.rlrp == False and args.calr == False and args.cawr == False:
+          
+            optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
+            # Learning rate decay
+            if (epoch + 1) % change_learning_rate_epochs == 0:
+                optimizer.param_groups[0]['lr'] /= 2  
         logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
            
         #Training in this epoch  
@@ -180,7 +204,10 @@ if __name__ == '__main__':
         test_avg /= len(test_loader)
 
         """更新学习率"""
-        scheduler.step(test_avg) 
+        if args.rlrp == True:
+            scheduler.step(test_avg) 
+        if args.calr == True or args.cawr == True:
+             scheduler.step() 
 
         if test_avg < test_avg_min:
             logging.info('Model saved!')

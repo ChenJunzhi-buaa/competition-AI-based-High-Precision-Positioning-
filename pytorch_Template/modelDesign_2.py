@@ -74,7 +74,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from torchvision.models import resnet18,resnet34,resnet50
+from torchvision.models import resnet18,resnet34,resnet50,resnet101,resnext50_32x4d,resnext101_32x8d
 import random,os
 import copy
 class Model_2(nn.Module):
@@ -83,14 +83,14 @@ class Model_2(nn.Module):
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
         if self.no_grad == True:
-            resnet = resnet50(pretrained=False,)
+            resnet = resnet34(pretrained=False,)
         else:
-            resnet = resnet50(pretrained=True,)
+            resnet = resnet34(pretrained=True,)
         # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
-        resnet.fc = nn.Linear(2048,2)
+        resnet.fc = nn.Linear(512,2)
         self.net = nn.Sequential(
             # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
-            resnet
+            resnet,
             )
         # self.eval()
 

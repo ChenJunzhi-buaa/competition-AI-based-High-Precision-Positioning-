@@ -100,7 +100,6 @@ class Model_1(nn.Module):
         # x[:,:,52:68,:]=0
         # x.shape ([bs, 256, 72, 2])
         """方式2：去掉不用通道"""
-        # x = torch.concat((x[:,:,0:4,:], x[:,:,20:24,:], x[:,:,48:52,:], x[:,:,68:,:]), dim=2)
         x = torch.cat((x[:,:,0:4,:], x[:,:,20:24,:], x[:,:,48:52,:], x[:,:,68:,:]), dim=2)
         
         """方式1：幅值复制三份"""
@@ -141,11 +140,13 @@ class Model_1(nn.Module):
 # import torch.nn as nn
 # from torch.utils.data import Dataset, DataLoader
 # from torchvision.models import resnet18
-
+# import math
 # class Model_1(nn.Module):
-#     def __init__(self):
+#     def __init__(self, no_grad=True, infer_batchsize=256):
 #         super(Model_1, self).__init__()
-  
+#         self.no_grad = no_grad
+#         self.infer_batchsize = infer_batchsize
+#         d_model = 16
 #         encoder_layer = nn.TransformerEncoderLayer(d_model=16, nhead=2,)
 #         transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=6,)
 #         self.net = nn.Sequential(
@@ -154,10 +155,10 @@ class Model_1(nn.Module):
 #             nn.Linear(256*16,2)
 #         )
 #         # self.eval()
+#         self.pos_encoder = PositionalEncoding(d_model, dropout=0.5)
 
 
-
-#     def forward(self, x, data_format='channels_last'):
+#     def _forward(self, x, data_format='channels_last'):
 #         # with torch.no_grad():
 #         """方式1：设为0"""
 #         # x[:,:,4:20,:]=0
@@ -173,3 +174,35 @@ class Model_1(nn.Module):
 
 #         out = self.net(x)
 #         return out
+#     def forward(self, x, data_format='channels_last'):
+#         if self.no_grad == True:
+#             self.eval()
+        
+#             with torch.no_grad():
+#                 _out = []
+#                 for i in range(0,x.shape[0],self.infer_batchsize):
+#                     if i+self.infer_batchsize <= x.shape[0]:
+#                         batch_out = self._forward(x[i:i+self.infer_batchsize])
+#                     else:
+#                         batch_out = self._forward(x[i:])
+#                     _out.append(batch_out)
+#                 out = torch.cat(_out, axis=0)
+#         else:
+#             out = self._forward(x)
+#         return out
+# class PositionalEncoding(nn.Module):
+#     def __init__(self, d_model, dropout=0.1, max_len=5000):
+#         super(PositionalEncoding, self).__init__()
+#         self.dropout = nn.Dropout(p=dropout)
+
+#         pe = torch.zeros(max_len, d_model)
+#         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+#         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+#         pe[:, 0::2] = torch.sin(position * div_term)
+#         pe[:, 1::2] = torch.cos(position * div_term)
+#         pe = pe.unsqueeze(0).transpose(0, 1)
+#         self.register_buffer('pe', pe)
+
+#     def forward(self, x):
+#         x = x + self.pe[:x.size(0), :]
+#         return self.dropout(x)
