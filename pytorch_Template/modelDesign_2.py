@@ -78,7 +78,7 @@ from torchvision.models import resnet18,resnet34,resnet50,resnet101,resnext50_32
 import random,os
 import copy
 class Model_2(nn.Module):
-    def __init__(self, no_grad=True, infer_batchsize=256):
+    def __init__(self, no_grad=True, infer_batchsize=256, if_classifier=False):
         super(Model_2, self).__init__()
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
@@ -87,11 +87,19 @@ class Model_2(nn.Module):
         else:
             resnet = resnet34(pretrained=True,)
         # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
-        resnet.fc = nn.Linear(512,2)
-        self.net = nn.Sequential(
-            # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
-            resnet,
-            )
+        # if classifier == True:
+        #     out_len = 3
+        # else:
+        #     out_len = 2
+        resnet.fc = nn.Sequential()
+        self.backbone = resnet
+        self.regression = nn.Linear(512,2)
+        self.classifier = nn.Linear(512,18)
+        self.if_classifier = if_classifier
+        # self.net = nn.Sequential(
+        #     # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
+        #     resnet,
+        #     )
         # self.eval()
 
 
@@ -107,8 +115,10 @@ class Model_2(nn.Module):
         x = torch.cat((x,x_norm),dim=3)
         x = x.permute(0,3,1,2)
         
-
-        return self.net(x)
+        if self.if_classifier == True:
+            return self.regression(self.backbone(x)), self.classifier(self.backbone(x))
+        else:
+            return  self.regression(self.backbone(x))
     def _tta_forward(self, x, num=5):
         # def seed_everything(seed_value):
         #     random.seed(seed_value)
@@ -141,7 +151,7 @@ class Model_2(nn.Module):
         return out
 
     def forward(self, x, data_format='channels_last'):
-        if self.no_grad == True:
+        if self.no_grad == True and self.if_classifier == False:
             self.eval()
            
             with torch.no_grad():
@@ -153,8 +163,8 @@ class Model_2(nn.Module):
                         batch_out = self._forward(x[i:])
                     _out.append(batch_out)
                 out = torch.cat(_out, axis=0)
-        else:
-            out = self._forward(x)
+        else :
+             out = self._forward(x)
         
         return out
     def data_aug(self, x, aug_times=10, y=None):

@@ -90,6 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('--cawr', default=False, action='store_true', help = 'CosineAnnealingWarmRestarts' )
     parser.add_argument('--sr', default=0.1, type=float, help='split_ratio' )
     parser.add_argument('--seed', default=42, type=int )
+    parser.add_argument('--no_seed', default=False, action = 'store_true' )
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
@@ -110,9 +111,12 @@ if __name__ == '__main__':
     copyfile('pytorch_Template/modelDesign_1.py', os.path.join(submit_path, 'modelDesign_1.py'))
     copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
     """设置随机数种子"""
-    seed_value = args.seed
-    seed_everything(seed_value=seed_value)
-    logging.info(f'seed_value:{seed_value}')
+    if args.no_seed == False:
+        seed_value = args.seed
+        seed_everything(seed_value=seed_value)
+        logging.info(f'seed_value:{seed_value}')
+    else:
+        logging.info(f'不设定可复现')
     """加载数据"""
     file_name1 = 'data/Case_1_2_Training.npy'
     logging.info('The current dataset is : %s'%(file_name1))
@@ -125,12 +129,12 @@ if __name__ == '__main__':
 
 
     """数据扩增"""
-    # trainX_copy = copy.deepcopy(trainX)
-    # trainX_copy[:,:,4:20,:]=0
-    # trainX_copy[:,:,24:48,:]=0
-    # trainX_copy[:,:,52:68,:]=0
-    # trainX = np.concatenate((trainX, trainX_copy), axis=0)
-    # trainY = np.concatenate((trainY, trainY), axis=0)
+    trainX_copy = copy.deepcopy(trainX)
+    trainX_copy[:,:,4:20,:]=0
+    trainX_copy[:,:,24:48,:]=0
+    trainX_copy[:,:,52:68,:]=0
+    trainX = np.concatenate((trainX, trainX_copy), axis=0)
+    trainY = np.concatenate((trainY, trainY), axis=0)
     
     """打乱数据顺序"""
     index = np.arange(len(trainX))
@@ -207,7 +211,7 @@ if __name__ == '__main__':
         if args.rlrp == True:
             scheduler.step(test_avg) 
         if args.calr == True or args.cawr == True:
-             scheduler.step() 
+            scheduler.step() 
 
         if test_avg < test_avg_min:
             logging.info('Model saved!')
@@ -220,3 +224,5 @@ if __name__ == '__main__':
         logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
 
 logging.info(datetime.now())
+
+

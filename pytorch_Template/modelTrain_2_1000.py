@@ -84,7 +84,7 @@ if __name__ == '__main__':
     parser.add_argument('--rlrp', default=False, action='store_true' )
     parser.add_argument('--sr', default=0.1, type=float, help='split_ratio' )
     parser.add_argument('--seed', default=1, type=int )
-    
+    parser.add_argument('--classifier', default=False, action='store_true' )
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
@@ -120,6 +120,43 @@ if __name__ == '__main__':
     POS = np.load(file_name2)
     trainY_labeled = POS.transpose((1,0)) #[none, 2]
 
+    """构造分类标签"""
+   
+    def get_class_label(trainY_labeled):
+         #标签
+        class_label = [[0,1,2,3,4,5,],
+                    [6,7,8,9,10,11,],
+                    [12,13,14,15,16,17]
+                    ]
+        trainY_class_labeled = np.zeros((0,1), dtype=np.uint8)
+        for x in range(trainY_labeled.shape[0]):
+            location = trainY_labeled[x]
+            location_0 = location[0]
+            location_1 = location[1]
+            if location_0 >=0 and location_0 < 20:
+                class_label_index0 = 0
+            elif location_0 >=20 and location_0 < 40:
+                class_label_index0 = 1
+            elif location_0 >= 40 and location_0 < 60:
+                class_label_index0 = 2
+            elif location_0 >= 60 and location_0 < 80:
+                class_label_index0 = 3
+            elif location_0 >= 80 and location_0 < 100:
+                class_label_index0 = 4
+            elif location_0 >= 100 and location_0 <= 120:
+                class_label_index0 = 5
+
+            if location_1 >= 0 and location_1 < 20:
+                class_label_index1 = 0
+            elif location_1 >= 20 and location_1 < 40:
+                class_label_index1 = 1
+            elif location_1 >= 40 and location_1 <= 60:
+                class_label_index1 = 2
+            trainY_class_labeled = np.concatenate((trainY_class_labeled, np.expand_dims(np.array([class_label[class_label_index1][class_label_index0]]), axis=0)),axis=0)
+        return trainY_class_labeled
+    if args.classifier == True:
+        trainY_class_labeled = get_class_label(trainY_labeled)
+        trainY_labeled = np.concatenate((trainY_labeled, trainY_class_labeled), axis=1)
     """转化为tensor"""
     trainX_labeled = torch.tensor(trainX_labeled)
     trainY_labeled = torch.tensor(trainY_labeled)
@@ -170,8 +207,10 @@ if __name__ == '__main__':
 
 
     criterion = nn.MSELoss().to(DEVICE)
+    if args.classifier == True:
+        criterion_classifier = nn.CrossEntropyLoss().to(DEVICE)
     """加载模型"""
-    model = Model_2(no_grad=False)
+    model = Model_2(no_grad=False, if_classifier=args.classifier)
     model = model.to(DEVICE)
     logging.info(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=args.weight_decay)
@@ -198,9 +237,17 @@ if __name__ == '__main__':
             
             # 清零
             optimizer.zero_grad()
-            output = model(x)
-            # 计算损失函数
-            loss = criterion(output, y)
+
+            if args.classifier == True:
+                output_r, output_c = model(x)
+                loss_r = criterion(output_r, y[:,:2])
+                loss_c = criterion_classifier(output_c, y[:,2].long())
+                loss =  + loss_r + loss_c
+                logging.info(f"回归训损失{loss_r:.4f}，分类训练损失{loss_c:.4f}")
+            else:
+                output = model(x)
+                # 计算损失函数
+                loss = criterion(output, y)
             loss.backward()
             optimizer.step()
             
@@ -215,9 +262,15 @@ if __name__ == '__main__':
             x = x.float().to(DEVICE)
             y = y.float().to(DEVICE)
 
-            output = model(x)
-            # 计算损失函数
-            loss_test = criterion(output, y)
+            if args.classifier == True:
+                output_r, output_c = model(x)
+                # loss_test = criterion(output_r, y[:,:2]) + criterion_classifier(output_c, y[:,2].long())
+                loss_test = criterion(output_r, y[:,:2])
+                
+            else:
+                output = model(x)
+                # 计算损失函数
+                loss_test = criterion(output, y)
             test_avg += loss_test.item() 
         
         test_avg /= len(test_loader)
@@ -231,4 +284,6 @@ if __name__ == '__main__':
             torch.save(model.state_dict(), model_save)
             model.to(DEVICE)
         logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
-logging.info(datetime.now())
+    logging.info(datetime.now())
+
+
