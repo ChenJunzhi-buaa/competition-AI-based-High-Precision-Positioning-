@@ -18,62 +18,10 @@ import logging
 import os
 from shutil import copyfile
 import argparse
-from utils import seed_everything
+from utils import *
 from datetime import datetime
 import copy
 from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
-class MyDataset(Dataset):
-    def __init__(self, trainX,trainY,split_ratio):
-        N = trainX.shape[0]
-       
-        TrainNum = int((N*(1-split_ratio)))
-        self.x = trainX[:TrainNum].float()
-        self.y = trainY[:TrainNum].float()
-
-        self.len = len(self.y)
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):     
-        x = self.x[idx]
-        y = self.y[idx]
-        
-        return (x, y)
-
-class MyTestset(Dataset):
-    def __init__(self, trainX,trainY,split_ratio):
-        N = trainX.shape[0]
-       
-        TrainNum = int((N*(1-split_ratio)))
-        self.x = trainX[TrainNum:].float()
-        self.y = trainY[TrainNum:].float()
-
-        self.len = len(self.y)
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):     
-        x = self.x[idx]
-        y = self.y[idx]
-        
-        return (x, y)
- 
-
-
-# BATCH_SIZE = 100
-# LEARNING_RATE = 0.001
-# TOTAL_EPOCHS = 500
-# split_ratio = 0.1
-
-
-
-# DEVICE=torch.device("cpu")
-# if torch.cuda.is_available():
-#         DEVICE=torch.device("cuda:0")
-
-change_learning_rate_epochs = 100
 
 if __name__ == '__main__':
     """命令行参数"""
@@ -81,19 +29,22 @@ if __name__ == '__main__':
     parser.add_argument('--submit_id', type=str, required=True)
     parser.add_argument('--cuda', default=0)
     parser.add_argument('--bs', type=int, default=32)
+    parser.add_argument('--big_bs', type=int, default=256)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--rlrp', default=False, action='store_true' )
     parser.add_argument('--sr', default=0.1, type=float, help='split_ratio' )
     parser.add_argument('--seed', default=1, type=int )
     parser.add_argument('--classifier', default=True, action='store_false' )
-    parser.add_argument('--epochs', default=10000, type=int)
+    parser.add_argument('--begin_epochs', default=10000, type=int)
+    parser.add_argument('--co_epochs', default=500, type=int)
+    parser.add_argument('--no_seed', default=False, action = 'store_true' )
+    parser.add_argument('--change_learning_rate_epochs', default=100, type=int)
     args = parser.parse_args()
-    TOTAL_EPOCHS = args.epochs
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
-    BATCH_SIZE = args.bs
-    LEARNING_RATE = args.lr
+    # BATCH_SIZE = args.bs
+    # LEARNING_RATE = args.lr
     split_ratio = args.sr
     """保存好要提交的文件、训练代码、训练日志"""
     id_path = os.path.join('submit',str(args.submit_id))
@@ -106,15 +57,22 @@ if __name__ == '__main__':
     logging.info(datetime.now())
     logging.info(args)
     model_save = os.path.join(submit_path,'modelSubmit_2.pth')
+    model_save_A = os.path.join(id_path,'modelSubmit_2_A.pth')
+    model_save_B = os.path.join(id_path,'modelSubmit_2_B.pth')
+    
     copyfile('pytorch_Template/modelDesign_2.py', os.path.join(submit_path, 'modelDesign_2.py'))
+    copyfile('pytorch_Template/utils.py', os.path.join(id_path, 'utils.py'))
     if '/' in __file__:
         copyfile(__file__, os.path.join(id_path, __file__.split('/')[-1]))
     elif '\\' in __file__:
         copyfile(__file__, os.path.join(id_path, __file__.split('\\')[-1]))
     """设置随机数种子"""
-    seed_value = args.seed
-    seed_everything(seed_value=seed_value)
-    logging.info(f'seed_value:{seed_value}')
+    if args.no_seed == False:
+        seed_value = args.seed
+        seed_everything(seed_value=seed_value)
+        logging.info(f'seed_value:{seed_value}')
+    else:
+        logging.info(f'不设定可复现')
     """加载数据"""
     file_name1 = os.path.join('data','Case_3_Training.npy')
     logging.info('The current dataset is : %s'%(file_name1))
@@ -128,39 +86,6 @@ if __name__ == '__main__':
     trainY_labeled = POS.transpose((1,0)) #[none, 2]
 
     """构造分类标签"""
-   
-    def get_class_label(trainY_labeled):
-         #标签
-        class_label = [[0,1,2,3,4,5,],
-                    [6,7,8,9,10,11,],
-                    [12,13,14,15,16,17]
-                    ]
-        trainY_class_labeled = np.zeros((0,1), dtype=np.uint8)
-        for x in range(trainY_labeled.shape[0]):
-            location = trainY_labeled[x]
-            location_0 = location[0]
-            location_1 = location[1]
-            if location_0 >=0 and location_0 < 20:
-                class_label_index0 = 0
-            elif location_0 >=20 and location_0 < 40:
-                class_label_index0 = 1
-            elif location_0 >= 40 and location_0 < 60:
-                class_label_index0 = 2
-            elif location_0 >= 60 and location_0 < 80:
-                class_label_index0 = 3
-            elif location_0 >= 80 and location_0 < 100:
-                class_label_index0 = 4
-            elif location_0 >= 100 and location_0 <= 120:
-                class_label_index0 = 5
-
-            if location_1 >= 0 and location_1 < 20:
-                class_label_index1 = 0
-            elif location_1 >= 20 and location_1 < 40:
-                class_label_index1 = 1
-            elif location_1 >= 40 and location_1 <= 60:
-                class_label_index1 = 2
-            trainY_class_labeled = np.concatenate((trainY_class_labeled, np.expand_dims(np.array([class_label[class_label_index1][class_label_index0]]), axis=0)),axis=0)
-        return trainY_class_labeled
     if args.classifier == True:
         trainY_class_labeled = get_class_label(trainY_labeled)
         trainY_labeled = np.concatenate((trainY_labeled, trainY_class_labeled), axis=1)
@@ -194,11 +119,11 @@ if __name__ == '__main__':
     # test_trainX_labeled, test_trainY_labeled = Model_2().data_aug(x = test_trainX_labeled, y = test_trainY_labeled)
     train_dataset = MyDataset(trainX_labeled,trainY_labeled,split_ratio=0)
     train_loader = DataLoader(dataset=train_dataset,
-                                               batch_size=BATCH_SIZE,
+                                               batch_size=args.bs,
                                                shuffle=True)  # shuffle 标识要打乱顺序
     test_dataset = MyDataset(test_trainX_labeled,test_trainY_labeled,split_ratio=0)
     test_loader = DataLoader(dataset=test_dataset,
-                                               batch_size=BATCH_SIZE,
+                                               batch_size=args.bs,
                                                shuffle=True)  # shuffle 标识要打乱顺序
     
     # train_dataset = MyDataset(trainX_labeled,trainY_labeled,split_ratio)
@@ -213,9 +138,7 @@ if __name__ == '__main__':
 
 
 
-    criterion = nn.MSELoss().to(DEVICE)
-    if args.classifier == True:
-        criterion_classifier = nn.CrossEntropyLoss().to(DEVICE)
+
     """加载模型"""
     modelA = Model_2(no_grad=False, if_classifier=args.classifier)
     modelB = Model_2_18(no_grad=False, if_classifier=args.classifier)
@@ -229,82 +152,7 @@ if __name__ == '__main__':
 
     test_avg_min = 10000;  
 
-    def train(model, test_avg_min, save=False):
-        optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=args.weight_decay)
-        if args.rlrp == True:
-            scheduler = ReduceLROnPlateau(optimizer, factor=0.8, patience=30,)
-
-        for epoch in range(TOTAL_EPOCHS):
-            model.train()     
-            if args.rlrp == False:
-            
-                optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
-                # Learning rate decay
-                if (epoch + 1) % change_learning_rate_epochs == 0:
-                    optimizer.param_groups[0]['lr'] /= 2 
-
-            logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
-            
-            #Training in this epoch  
-            loss_avg = 0
-            for i, (x, y) in enumerate(train_loader):
-                x = x.float().to(DEVICE)
-                y = y.float().to(DEVICE)
-                
-                # 清零
-                optimizer.zero_grad()
-
-                if args.classifier == True:
-                    output_r, output_c = model(x)
-                    loss_r = criterion(output_r, y[:,:2])
-                    loss_c = criterion_classifier(output_c, y[:,2].long())
-                    loss =  loss_r + loss_c
-                    logging.info(f"regression train loss {loss_r:.4f}, classifier train loss {loss_c:.4f}")
-                else:
-                    output = model(x)
-                    # 计算损失函数
-                    loss = criterion(output, y)
-                loss.backward()
-                optimizer.step()
-                
-                loss_avg += loss.item() 
-                
-            loss_avg /= len(train_loader)
-            
-            #Testing in this epoch
-            model.eval()
-            with torch.no_grad():
-                test_avg = 0
-                for i, (x, y) in enumerate(test_loader):
-                    x = x.float().to(DEVICE)
-                    y = y.float().to(DEVICE)
-
-                    if args.classifier == True:
-                        output_r, output_c = model(x)
-                        # loss_test = criterion(output_r, y[:,:2]) + criterion_classifier(output_c, y[:,2].long())
-                        loss_test = criterion(output_r, y[:,:2])
-                        
-                    else:
-                        output = model(x)
-                        # 计算损失函数
-                        loss_test = criterion(output, y)
-                    test_avg += loss_test.item() 
-                
-                test_avg /= len(test_loader)
-                """更新学习率"""
-                if args.rlrp == True:
-                    scheduler.step(test_avg) 
-                if test_avg < test_avg_min:
-                    
-                    test_avg_min = test_avg
-                    if save:
-                        logging.info('Model saved!')
-                        model.to("cuda:0")
-                        torch.save(model.state_dict(), model_save)
-                        model.to(DEVICE)
-                logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
-        logging.info(datetime.now())
-        return test_avg_min
+   
 
     
 
@@ -313,66 +161,41 @@ if __name__ == '__main__':
     # model.load_state_dict(torch.load(model_path))
     # model = model.to(DEVICE)
     # model_18 = model.to(DEVICE)
-    def label(X, model, DEVICE, BATCH_SIZE=100, threshold = 0.99):
-        model.eval()
-        batch_num = X.shape[0]//BATCH_SIZE + bool(X.shape[0]%BATCH_SIZE)
-        X_pselabeled_good = torch.zeros((0, X.shape[1], X.shape[2], X.shape[3]))
-        Y_pselabeled_good = torch.zeros((0,3))
-        with torch.no_grad(): #没有这行的话，显存会越占越大
-            for i in range(batch_num): 
-                if i < batch_num - 1:
-                    X_batch = X[i*BATCH_SIZE:(i+1)*BATCH_SIZE]
-                else:
-                    X_batch = X[i*BATCH_SIZE:]
-                X_batch = X_batch.to(DEVICE).float()
-                Y_pselabeled_batch,  Y_class_batch= model(X_batch)
 
-                
-                Y_class_batch_max_index = Y_class_batch.softmax(axis=1).argmax(axis=1)
-                Y_pselabeled_batch = torch.concat((Y_pselabeled_batch, Y_class_batch_max_index.unsqueeze(axis=1)), axis=1)
-                confidence = Y_class_batch.softmax(axis=1)[range(X_batch.shape[0]),Y_class_batch_max_index]
-                Y_pselabeled_batch = Y_pselabeled_batch.to('cpu')
-                Y_pselabeled_batch_good = Y_pselabeled_batch[confidence>threshold]
-                Y_pselabeled_good = torch.concat((Y_pselabeled_good, Y_pselabeled_batch_good), dim=0)
-                X_pselabeled_good = torch.concat((X_pselabeled_good, X_batch[confidence>threshold].to('cpu')), dim=0)
-        return X_pselabeled_good, Y_pselabeled_good
-    
     """train A"""
-    logging.info("train A")
-    test_avg_min_A = train(modelA, test_avg_min, save=True)
+    logging.info("###################### train A ##################################")
+    test_avg_min_A = train(args, modelA, 10000, args.begin_epochs, train_loader, test_loader, model_save_A, True)
     """train B"""
-    logging.info("train B")
-    test_avg_min_B = train(modelB, test_avg_min)
+    logging.info("##################### train B#######################################")
+    test_avg_min_B = train(args, modelB, 10000, args.begin_epochs, train_loader, test_loader, model_save_B, True)
     """"训练NUMBER轮"""
     NUMBER =  10
+    """改学习率策略"""
+    args.rlrp = True
     for i in range(NUMBER):
         logging.info(f" ")
         logging.info(f"############## i : {i} ###############################################")
         """label by A """
         logging.info("############## label by A ###############################################")
         with torch.no_grad():
-            X_pselabeled_good, Y_pselabeled_good = label(trainX_unlabeled, modelA, DEVICE)
+            X_pselabeled_good, Y_pselabeled_good = label(args,trainX_unlabeled, modelA)
         logging.info(f"good label numbers:{X_pselabeled_good.shape[0]}")
         train_dataset = MyDataset(torch.concat((trainX_labeled, X_pselabeled_good), axis=0), torch.concat((trainY_labeled, Y_pselabeled_good), axis=0), split_ratio=0)
-        train_loader = DataLoader(dataset=train_dataset,
-                                        batch_size=BATCH_SIZE,
-                                        shuffle=True)  # shuffle 标识要打乱顺序
+        train_loader = DataLoader(dataset=train_dataset,batch_size=args.big_bs,shuffle=True)  # shuffle 标识要打乱顺序
         """train B"""
         logging.info("############## train B ###############################################")
-        test_avg_min_B = train(modelB, test_avg_min_B)
+        test_avg_min_B = train(args, modelB, test_avg_min_B, args.co_epochs, train_loader, test_loader, model_save_B, False)
 
         """label by B """
         logging.info("############## label by B ###############################################")
         with torch.no_grad():
-            X_pselabeled_good, Y_pselabeled_good = label(trainX_unlabeled, modelA, DEVICE)
+            X_pselabeled_good, Y_pselabeled_good = label(args, trainX_unlabeled, modelB,)
         logging.info(f"good label numbers:{X_pselabeled_good.shape[0]}")
         train_dataset = MyDataset(torch.concat((trainX_labeled, X_pselabeled_good), axis=0), torch.concat((trainY_labeled, Y_pselabeled_good), axis=0), split_ratio=0)
-        train_loader = DataLoader(dataset=train_dataset,
-                                        batch_size=BATCH_SIZE,
-                                        shuffle=True)  # shuffle 标识要打乱顺序
+        train_loader = DataLoader(dataset=train_dataset,batch_size=args.big_bs,shuffle=True)  # shuffle 标识要打乱顺序
         """train A"""
         logging.info("############## train A ###############################################")
-        test_avg_min_A = train(modelA, test_avg_min_A, save=True)
+        test_avg_min_A = train(args, modelA, test_avg_min_A, args.co_epochs, train_loader, test_loader, model_save, True)
 
 
 

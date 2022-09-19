@@ -143,6 +143,7 @@ if __name__ == '__main__':
     trainY = trainY[index]
     """加载模型"""
     model = Model_1(no_grad=False)
+    # model.load_state_dict(torch.load('submit/46-2-1/submit_pt/modelSubmit_1.pth',))
     model = model.to(DEVICE)
     logging.info(model)
     
@@ -195,33 +196,34 @@ if __name__ == '__main__':
         
         #Testing in this epoch
         model.eval()
-        test_avg = 0
-        for i, (x, y) in enumerate(test_loader):
-            x = x.float().to(DEVICE)
-            y = y.float().to(DEVICE)
+        with torch.no_grad():
+            test_avg = 0
+            for i, (x, y) in enumerate(test_loader):
+                x = x.float().to(DEVICE)
+                y = y.float().to(DEVICE)
 
-            output = model(x)
-            # 计算损失函数
-            loss_test = criterion(output, y)
-            test_avg += loss_test.item() 
-        
-        test_avg /= len(test_loader)
+                output = model(x)
+                # 计算损失函数
+                loss_test = criterion(output, y)
+                test_avg += loss_test.item() 
+            
+            test_avg /= len(test_loader)
 
-        """更新学习率"""
-        if args.rlrp == True:
-            scheduler.step(test_avg) 
-        if args.calr == True or args.cawr == True:
-            scheduler.step() 
+            """更新学习率"""
+            if args.rlrp == True:
+                scheduler.step(test_avg) 
+            if args.calr == True or args.cawr == True:
+                scheduler.step() 
 
-        if test_avg < test_avg_min:
-            logging.info('Model saved!')
-            test_avg_min = test_avg
+            if test_avg < test_avg_min:
+                logging.info('Model saved!')
+                test_avg_min = test_avg
 
-            # torch.save(model, model_save)
-            model.to("cuda:0")
-            torch.save(model.state_dict(), model_save)
-            model.to(DEVICE)
-        logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
+                # torch.save(model, model_save)
+                model.to("cuda:0")
+                torch.save(model.state_dict(), model_save)
+                model.to(DEVICE)
+            logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
 
 logging.info(datetime.now())
 
