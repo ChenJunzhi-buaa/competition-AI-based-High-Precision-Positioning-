@@ -90,12 +90,12 @@ if __name__ == '__main__':
     parser.add_argument('--cawr', default=False, action='store_true', help = 'CosineAnnealingWarmRestarts' )
     parser.add_argument('--sr', default=0.1, type=float, help='split_ratio' )
     parser.add_argument('--seed', default=42, type=int )
-    parser.add_argument('--no_seed', default=False, action = 'store_true' )
+    parser.add_argument('--no_seed', default=True, action = 'store_false' )
     parser.add_argument('--epochs', default=10000, type=int)
 
     parser.add_argument('--classifier', default=False, action='store_true' )
     parser.add_argument('--change_learning_rate_epochs', default=100, type=int)
-    parser.add_argument('--num_workers', default=8, type=int)
+    parser.add_argument('--num_workers', default=4, type=int)
     parser.add_argument('--pin_memory', default=False, action='store_true' )
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
