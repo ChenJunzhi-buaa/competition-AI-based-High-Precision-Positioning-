@@ -23,58 +23,58 @@ import os
 from shutil import copyfile
 from datetime import datetime
 import copy
-
+from utils import train, MyDataset
 from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau,CosineAnnealingLR,CosineAnnealingWarmRestarts
-class MyDataset(Dataset):
-    def __init__(self, trainX,trainY,split_ratio):
-        N = trainX.shape[0]
+# class MyDataset(Dataset):
+#     def __init__(self, trainX,trainY,split_ratio):
+#         N = trainX.shape[0]
        
-        TrainNum = int((N*(1-split_ratio)))
-        self.x = trainX[:TrainNum].astype(np.float32)
-        self.y = trainY[:TrainNum].astype(np.float32)
+#         TrainNum = int((N*(1-split_ratio)))
+#         self.x = trainX[:TrainNum].astype(np.float32)
+#         self.y = trainY[:TrainNum].astype(np.float32)
 
-        self.len = len(self.y)
+#         self.len = len(self.y)
 
-    def __len__(self):
-        return self.len
+#     def __len__(self):
+#         return self.len
 
-    def __getitem__(self, idx):     
-        x = self.x[idx]
-        y = self.y[idx]
+#     def __getitem__(self, idx):     
+#         x = self.x[idx]
+#         y = self.y[idx]
         
-        return (x, y)
+#         return (x, y)
 
-class MyTestset(Dataset):
-    def __init__(self, trainX,trainY,split_ratio):
-        N = trainX.shape[0]
+# class MyTestset(Dataset):
+#     def __init__(self, trainX,trainY,split_ratio):
+#         N = trainX.shape[0]
        
-        TrainNum = int((N*(1-split_ratio)))
-        self.x = trainX[TrainNum:].astype(np.float32)
-        self.y = trainY[TrainNum:].astype(np.float32)
+#         TrainNum = int((N*(1-split_ratio)))
+#         self.x = trainX[TrainNum:].astype(np.float32)
+#         self.y = trainY[TrainNum:].astype(np.float32)
 
-        self.len = len(self.y)
+#         self.len = len(self.y)
 
-    def __len__(self):
-        return self.len
+#     def __len__(self):
+#         return self.len
 
-    def __getitem__(self, idx):     
-        x = self.x[idx]
-        y = self.y[idx]
+#     def __getitem__(self, idx):     
+#         x = self.x[idx]
+#         y = self.y[idx]
         
-        return (x, y)
+#         return (x, y)
  
 
 
 # BATCH_SIZE = 100
 # LEARNING_RATE = 0.001
-TOTAL_EPOCHS = 10000
-split_ratio = 0.1
-change_learning_rate_epochs = 100
+# TOTAL_EPOCHS = 10000
+# split_ratio = 0.1
+# change_learning_rate_epochs = 100
 
 
-DEVICE=torch.device("cpu")
-if torch.cuda.is_available():
-        DEVICE=torch.device("cuda:0")
+# DEVICE=torch.device("cpu")
+# if torch.cuda.is_available():
+#         DEVICE=torch.device("cuda:0")
 
 
 if __name__ == '__main__':
@@ -91,6 +91,12 @@ if __name__ == '__main__':
     parser.add_argument('--sr', default=0.1, type=float, help='split_ratio' )
     parser.add_argument('--seed', default=42, type=int )
     parser.add_argument('--no_seed', default=False, action = 'store_true' )
+    parser.add_argument('--epochs', default=10000, type=int)
+
+    parser.add_argument('--classifier', default=False, action='store_true' )
+    parser.add_argument('--change_learning_rate_epochs', default=100, type=int)
+    parser.add_argument('--num_workers', default=8, type=int)
+    parser.add_argument('--pin_memory', default=False, action='store_true' )
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
@@ -143,88 +149,98 @@ if __name__ == '__main__':
     trainY = trainY[index]
     """加载模型"""
     model = Model_1(no_grad=False)
-    # model.load_state_dict(torch.load('submit/46-2-1/submit_pt/modelSubmit_1.pth',))
+    model.load_state_dict(torch.load('submit/61-2/submit_pt/modelSubmit_1.pth',))
     model = model.to(DEVICE)
     logging.info(model)
     
-    train_dataset = MyDataset(trainX,trainY,split_ratio)
+    train_num = int(len(trainX) * (1-split_ratio))
+    testX = torch.tensor(trainX[train_num:], dtype = torch.float)
+    testY = torch.tensor(trainY[train_num:], dtype = torch.float)
+    trainX = torch.tensor(trainX[:train_num], dtype = torch.float)
+    trainY = torch.tensor(trainY[:train_num], dtype = torch.float)
+
+    train_dataset = MyDataset(trainX,trainY,split_ratio=0)
     train_loader = DataLoader(dataset=train_dataset,
                                                batch_size=BATCH_SIZE,
-                                               shuffle=True)  # shuffle 标识要打乱顺序
-    test_dataset = MyTestset(trainX,trainY,split_ratio)
+                                               shuffle=True,
+                                               num_workers=args.num_workers,
+                                               pin_memory=args.pin_memory)  # shuffle 标识要打乱顺序
+    test_dataset = MyDataset(testX,testY,split_ratio=0)
     test_loader = DataLoader(dataset=test_dataset,
                                                batch_size=BATCH_SIZE,
-                                               shuffle=True)  # shuffle 标识要打乱顺序
-    criterion = nn.MSELoss().to(DEVICE)
+                                               shuffle=True,
+                                               num_workers=args.num_workers,
+                                               pin_memory=args.pin_memory)  # shuffle 标识要打乱顺序
+    # criterion = nn.MSELoss().to(DEVICE)
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=args.weight_decay)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=args.weight_decay)
     # scheduler = StepLR(optimizer, step_size=30, gamma=0.9)
-    if args.rlrp == True:
-        scheduler = ReduceLROnPlateau(optimizer, factor=0.8, patience=30,)
-    if args.calr == True:
-        scheduler = CosineAnnealingLR(optimizer, T_max=100)
-    if args.cawr == True:
-        scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=100, T_mult=2)
-    test_avg_min = 10000;
-    for epoch in range(TOTAL_EPOCHS):
-        model.train()       
-        if args.rlrp == False and args.calr == False and args.cawr == False:
+    # if args.rlrp == True:
+    #     scheduler = ReduceLROnPlateau(optimizer, factor=0.8, patience=30,)
+    # if args.calr == True:
+    #     scheduler = CosineAnnealingLR(optimizer, T_max=100)
+    # if args.cawr == True:
+    #     scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=100, T_mult=2)
+    # test_avg_min = 10000;
+    # for epoch in range(TOTAL_EPOCHS):
+    #     model.train()       
+    #     if args.rlrp == False and args.calr == False and args.cawr == False:
           
-            optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
-            # Learning rate decay
-            if (epoch + 1) % change_learning_rate_epochs == 0:
-                optimizer.param_groups[0]['lr'] /= 2  
-        logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
+    #         optimizer.param_groups[0]['lr'] = LEARNING_RATE /np.sqrt(np.sqrt(epoch+1))
+    #         # Learning rate decay
+    #         if (epoch + 1) % change_learning_rate_epochs == 0:
+    #             optimizer.param_groups[0]['lr'] /= 2  
+    #     logging.info('lr:%.4e' % optimizer.param_groups[0]['lr'])
            
-        #Training in this epoch  
-        loss_avg = 0
-        for i, (x, y) in enumerate(train_loader):
-            x = x.float().to(DEVICE)
-            y = y.float().to(DEVICE)
+    #     #Training in this epoch  
+    #     loss_avg = 0
+    #     for i, (x, y) in enumerate(train_loader):
+    #         x = x.float().to(DEVICE)
+    #         y = y.float().to(DEVICE)
             
-            # 清零
-            optimizer.zero_grad()
-            output = model(x)
-            # 计算损失函数
-            loss = criterion(output, y)
-            loss.backward()
-            optimizer.step()
+    #         # 清零
+    #         optimizer.zero_grad()
+    #         output = model(x)
+    #         # 计算损失函数
+    #         loss = criterion(output, y)
+    #         loss.backward()
+    #         optimizer.step()
             
-            loss_avg += loss.item() 
+    #         loss_avg += loss.item() 
          
-        loss_avg /= len(train_loader)
+    #     loss_avg /= len(train_loader)
         
-        #Testing in this epoch
-        model.eval()
-        with torch.no_grad():
-            test_avg = 0
-            for i, (x, y) in enumerate(test_loader):
-                x = x.float().to(DEVICE)
-                y = y.float().to(DEVICE)
+    #     #Testing in this epoch
+    #     model.eval()
+    #     with torch.no_grad():
+    #         test_avg = 0
+    #         for i, (x, y) in enumerate(test_loader):
+    #             x = x.float().to(DEVICE)
+    #             y = y.float().to(DEVICE)
 
-                output = model(x)
-                # 计算损失函数
-                loss_test = criterion(output, y)
-                test_avg += loss_test.item() 
+    #             output = model(x)
+    #             # 计算损失函数
+    #             loss_test = criterion(output, y)
+    #             test_avg += loss_test.item() 
             
-            test_avg /= len(test_loader)
+    #         test_avg /= len(test_loader)
 
-            """更新学习率"""
-            if args.rlrp == True:
-                scheduler.step(test_avg) 
-            if args.calr == True or args.cawr == True:
-                scheduler.step() 
+    #         """更新学习率"""
+    #         if args.rlrp == True:
+    #             scheduler.step(test_avg) 
+    #         if args.calr == True or args.cawr == True:
+    #             scheduler.step() 
 
-            if test_avg < test_avg_min:
-                logging.info('Model saved!')
-                test_avg_min = test_avg
+    #         if test_avg < test_avg_min:
+    #             logging.info('Model saved!')
+    #             test_avg_min = test_avg
 
-                # torch.save(model, model_save)
-                model.to("cuda:0")
-                torch.save(model.state_dict(), model_save)
-                model.to(DEVICE)
-            logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
-
+    #             # torch.save(model, model_save)
+    #             model.to("cuda:0")
+    #             torch.save(model.state_dict(), model_save)
+    #             model.to(DEVICE)
+    #         logging.info('Epoch : %d/%d, Loss: %.4f, Test: %.4f, BestTest: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,test_avg,test_avg_min))
+train(args, model, 10000, args.epochs, train_loader, model_save, test_loader, True, testX, testY )
 logging.info(datetime.now())
 
 

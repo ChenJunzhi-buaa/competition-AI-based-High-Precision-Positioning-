@@ -3960,6 +3960,17 @@ class Model_1(nn.Module):
         super(Model_1, self).__init__()
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
+        """resnet 18"""
+        # if self.no_grad == True:
+        #     resnet = resnet18(pretrained=False,)
+        # else:
+        #     resnet = resnet18(pretrained=True,)
+        # # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+        # resnet.fc = nn.Linear(512,2)
+        # self.net = nn.Sequential(
+        #     # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
+        #     resnet
+        #     )
 
         """resnet 34"""
         # if self.no_grad == True:

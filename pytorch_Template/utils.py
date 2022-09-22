@@ -72,30 +72,37 @@ class MyTestset(Dataset):
         return (x, y)
 
 
-def test(args,testX:torch.tensor, testY:torch.tensor, weights:torch.tensor=None, *models):
-    if weights == None:
-        weights = torch.ones(len(models), dtype=float)
-    testY = testY
+def score(y_predict:torch.tensor, testY:torch.tensor):
     Num = len(testY)
-    def score(y_predict):
-        Diff   = torch.sqrt(torch.sum((torch.square(y_predict - testY)),1)) # Euclidean distance
-        Order = torch.sort(Diff).values
-        Scores =  100 - Order[int(Num*0.9)]
-        # print('The score of Case 3 is '  + np.str(100 - Scores))
-        return Scores
-    y_test_avg = 0
+    Diff   = torch.sqrt(torch.sum((torch.square(y_predict - testY)),1)) # Euclidean distance
+    Order = torch.sort(Diff).values
+    Scores =  100 - Order[int(Num*0.9)]
+    # print('The score of Case 3 is '  + np.str(100 - Scores))
+    return Scores
+
+def predict(args, testX, *models):
     y_test_s = []
     for model in models:
         model = model.to(torch.device(f"cuda:{args.cuda}"))
         model.eval()
-        y_predict = model(testX).cpu().data
+        with torch.no_grad():
+            y_predict = model(testX).cpu().data
         # y_test_avg = y_test_avg + y_predict
         y_test_s.append(y_predict)
         # score(y_predict)
+    return y_test_s
+
+def test(args,testX:torch.tensor, testY:torch.tensor, weights:torch.tensor=None, *models):
+    if weights == None:
+        weights = torch.ones(len(models), dtype=float)
+    testY = testY
+    y_test_avg = 0
+    y_test_s = predict(args, testX, *models)
     for i in range(len(models)):
         y_test_avg = y_test_avg + weights[i]*y_test_s[i]
     y_test_avg = y_test_avg/sum(weights)
-    return score(y_test_avg)
+    return score(y_test_avg, testY)
+
 
 def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, test_loader=None, save=True, testX=None, testY=None, score_max=0):
     criterion = nn.MSELoss().to(torch.device(f"cuda:{args.cuda}"))
@@ -106,6 +113,7 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
         scheduler = ReduceLROnPlateau(optimizer, factor=0.8, patience=30,)
 
     for epoch in range(TOTAL_EPOCHS):
+        epoch_begin_time = datetime.now()
         model.train()     
         if args.rlrp == False:
         
@@ -148,7 +156,7 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
         with torch.no_grad():
             if testX is None and test_loader is None:
                 if save:
-                    if (epoch + 1) % 500 == 0:
+                    if (epoch + 1) % 200 == 0:
                         logging.info('Model saved!')
                         # model.to("cuda:0")
                         model.to("cpu")
@@ -222,6 +230,8 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
                         torch.save(model.state_dict(), model_save)
                         model.to(torch.device(f"cuda:{args.cuda}"))
                 logging.info('Epoch : %d/%d, Loss: %.4f, TestScore: %.4f, BestTestScore: %.4f, test_Loss: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,score,score_max, test_avg))
+        epoch_stop_time = datetime.now()
+        logging.info(f"每个epoch耗时{epoch_stop_time-epoch_begin_time}")
     logging.info(datetime.now())
     return test_avg_min
 
@@ -280,6 +290,11 @@ def pre2():
     parser.add_argument('--no_seed', default=True, action = 'store_false' )
     parser.add_argument('--change_learning_rate_epochs', default=100, type=int)
     parser.add_argument('--k', default=0, type=int, help="in case3, the k_th labelled data is test set ")
+    parser.add_argument('--method_id', default=1, type=int, help="the method id  ")
+
+    parser.add_argument('--num_workers', default=4, type=int)
+    parser.add_argument('--pin_memory', default=False, action='store_true' )
+    parser.add_argument('--no_test', default=False, action = 'store_true' )
     args = parser.parse_args()
     TOTAL_EPOCHS = args.epochs
     """注意评测设备只有一块gpu"""
@@ -438,7 +453,7 @@ def get_900(k=0):
     assert( len(trainX_labeled)==900 and  len(trainY_labeled)==900 and len(testX_labeled)==100 and len(testY_labeled)==100)
     return trainX_unlabeled, trainX_labeled, trainY_labeled, testX_labeled, testY_labeled
 
-def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0,  *models):
+def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0, if_adaptive_weight_thres=True, *models):
     def get_weight(model, weight_thres):
         _, _, _, testX, testY = get_900(k=0)
         # Y = label(args, testX, 1000, False, weight_thres, model)
@@ -453,6 +468,43 @@ def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0,  *mode
     # X_pselabeled_ave = 0
     Y_pselabeled_ave = 0
     weights = torch.ones(len(models), dtype=torch.float)
+    
+    """获取最佳的权重阈值"""
+    weight_thres_best = 98.0
+    test_ave_score_best = 0.0
+    if if_adaptive_weight_thres == True and len(models)>1: 
+        _, _, _, testX, testY = get_900(k=0)
+        testX = testX.to(torch.device(f"cuda:{args.cuda}"))
+        y_test_s = predict(args, testX, *models)
+        score_s = [score(y_test_s[i], testY) for i in range(len(models))]
+        logging.info(f"所有{len(models)}个子模型，各自的验证分数分别为:\n{score_s}")
+        for weight_thres_pre in np.arange(98.0,98.8,0.01): 
+            for weight_add in np.arange(0,2.0,0.01):
+                logging.info(f"########################################################################")
+                logging.info(f"权重阈值为:  {weight_thres_pre}  时：")
+                logging.info(f"权重附加值为:    {weight_add}    时：")
+                weights_pre = (score_s > weight_thres_pre)*(score_s - weight_thres_pre) + weight_add
+                weights_pre = [round(weight_each, 4) for weight_each in weights_pre]
+                logging.info(f"权重为:  {weights_pre}")
+                y_test_avg = 0
+                for i in range(len(models)):
+                    y_test_avg = y_test_avg + weights_pre[i]*y_test_s[i]
+                y_test_avg = y_test_avg/sum(weights_pre)
+                test_ave_score = score(y_test_avg, testY)
+                logging.info(f"模型平均的测试分数为:    {test_ave_score}")
+                if test_ave_score > test_ave_score_best:
+                    test_ave_score_best = test_ave_score
+                    weight_thres_best = weight_thres_pre
+                    weights = weights_pre
+                    logging.info(f"***** 获得最佳权重 ******")
+                    logging.info(f"最佳模型平均的测试分数为:    {test_ave_score_best}")
+        logging.info(f"######################### ******************************* #####################################")
+        logging.info(f"######################### 最终 #####################################")
+        logging.info(f"最佳权重阈值为:  {weight_thres_best}")
+        logging.info(f"最佳权重为:  {weights}")
+        logging.info(f"最佳模型平均的测试分数为:    {test_ave_score_best}")
+
+        
     Y_pselabeled_s = []
     for model_index, model in enumerate(models):
         model = model.to(torch.device(f"cuda:{args.cuda}"))
@@ -473,13 +525,15 @@ def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0,  *mode
                 # X_pselabeled = torch.concat((X_pselabeled, X_batch.to('cpu')), dim=0)
         # X_pselabeled_ave = X_pselabeled_ave + X_pselabeled
             Y_pselabeled_s.append(Y_pselabeled)
-            if if_weight == True:
+            if if_weight == True and if_adaptive_weight_thres == False:
                 weights[model_index] = get_weight(model, weight_thres)
+    
     logging.info(f"weights{weights}")
-    """测一下集成模型在验证集上的score"""
-    _, _, _, testX, testY = get_900(k=0)
-    testX = testX.to(torch.device(f"cuda:{args.cuda}"))
-    logging.info(f"集成模型在验证集上的score:{test(args,testX,testY,weights,*models)}")
+    if if_adaptive_weight_thres == False:
+        """测一下集成模型在验证集上的score"""
+        _, _, _, testX, testY = get_900(k=0)
+        testX = testX.to(torch.device(f"cuda:{args.cuda}"))
+        logging.info(f"集成模型在验证集上的score:   {test(args,testX,testY,weights,*models)}")
 
     for i in range(len(models)):
         Y_pselabeled_ave = Y_pselabeled_ave + weights[i] * Y_pselabeled_s[i]

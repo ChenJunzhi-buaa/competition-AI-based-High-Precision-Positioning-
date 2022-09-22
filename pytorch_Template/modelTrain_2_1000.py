@@ -36,7 +36,7 @@ if __name__ == '__main__':
     test_loader = DataLoader(dataset=test_dataset,
                                                batch_size=args.bs,
                                                shuffle=True)  # shuffle 标识要打乱顺序
-    model = Model_2(no_grad=False, if_classifier=args.classifier)
+    model = Model_2(no_grad=False, if_classifier=args.classifier, method_id=args.method_id)
     model = model.to(torch.device(f"cuda:{args.cuda}"))
     logging.info(model)
    
