@@ -4265,6 +4265,68 @@ class Model_2(nn.Module):
             self.regression = nn.Linear(1280,2)
             self.if_classifier = if_classifier
             #self.classifier = nn.Linear(2304,18)
+        elif method_id == 25:
+            """resnet18"""
+            if self.no_grad == True:
+                resnet = resnet18(pretrained=False,)
+            else:
+                # resnet = resnet34(pretrained=True,)
+                resnet = resnet18(weights='DEFAULT',)
+            resnet.fc = nn.Sequential()
+            self.backbone = resnet
+            self.regression = nn.Linear(512,2)
+            self.if_classifier = if_classifier
+            # self.classifier = nn.Linear(512,18)
+        elif method_id == 101:
+            from torchvision.models import regnet_x_8gf,RegNet_X_8GF_Weights
+            """regnet_x_8gf"""
+            if self.no_grad == True:
+                regnet_x_8gf_net = regnet_x_8gf(pretrained=False)
+            else:
+                regnet_x_8gf_net = regnet_x_8gf(weights=RegNet_X_8GF_Weights.IMAGENET1K_V2)
+            regnet_x_8gf_net.fc = nn.Sequential()
+            self.backbone = regnet_x_8gf_net
+            self.regression = nn.Linear(1920,2)
+            self.if_classifier = if_classifier
+            # self.classifier = nn.Linear(2304,18)
+
+        elif method_id == 102:
+            """resnet101"""
+            from torchvision.models import resnet101,ResNet101_Weights
+            if self.no_grad == True:
+                resnet = resnet101(pretrained=False,)
+            else:
+                resnet = resnet101(weights = ResNet101_Weights.IMAGENET1K_V2)
+            resnet.fc = nn.Sequential()
+            self.backbone = resnet
+            self.regression = nn.Linear(2048,2)
+            self.if_classifier = if_classifier
+            # self.classifier = nn.Linear(2048,18)
+
+        elif method_id == 103:
+            from torchvision.models import regnet_x_16gf,RegNet_X_16GF_Weights
+            """regnet_x_16gf"""
+            if self.no_grad == True:
+                regnet_x_8gf_net = regnet_x_16gf(pretrained=False)
+            else:
+                regnet_x_8gf_net = regnet_x_16gf(weights=RegNet_X_16GF_Weights.IMAGENET1K_V2)
+            regnet_x_8gf_net.fc = nn.Sequential()
+            self.backbone = regnet_x_8gf_net
+            self.regression = nn.Linear(2048,2)
+            self.if_classifier = if_classifier
+            # self.classifier = nn.Linear(2304,18)
+
+
+
+
+
+            # resnet.fc = nn.Sequential()
+            # self.backbone = resnet
+            # self.regression = nn.Linear(512,2)
+
+
+            self.if_classifier = if_classifier
+            # self.classifier = nn.Linear(512,18)
 
     def _forward(self, x, data_format='channels_last'):
         
@@ -4448,6 +4510,12 @@ class Helpnet(nn.Module):
                         batch_out = self._forward(x[i:])
                     _out.append(batch_out)
                 out = torch.cat(_out, axis=0)
+
+                """限制界外输出"""
+                out[:,0][out[:,0]>120.0] = 120.0
+                out[:,0][out[:,0]<0] = 0.0
+                out[:,1][out[:,1]>60.0] = 60.0
+                out[:,1][out[:,1]<0] = 0.0
         else :
              out = self._forward(x)      
         return out

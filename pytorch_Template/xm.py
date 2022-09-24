@@ -1,5 +1,5 @@
-from netrc import netrc
-from typing_extensions import Self
+# from netrc import netrc
+# from typing_extensions import Self
 import numpy as np
 import h5py
 import torch
@@ -63,14 +63,14 @@ trainX = torch.from_numpy(trainX_labeled.astype(np.float32)).to(DEVICE)
 # model.load_state_dict(torch.load(model_address, map_location=DEVICE))
 # model_4 =model.to(DEVICE)
 
-for i in range(1,13):
+# for i in range(1,13):
         # model_address = './submit/53-1/submit_pt/modelSubmit_2.pth'
         # model = Model_2()
         # model.load_state_dict(torch.load(model_address, map_location=DEVICE))
         # model_1 =model.to(DEVICE)
 
 
-test(model_4)
+# test(model_4)
 
 # class EsembleNet():
 #         self.net1 = Model_2()

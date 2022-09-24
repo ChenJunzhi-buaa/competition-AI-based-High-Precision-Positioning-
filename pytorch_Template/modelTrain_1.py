@@ -7,6 +7,7 @@
 # 把模型变大
 # 时域频域变换
 # 归0的和不归0的，数据扩增，或许还能用在model2
+from ast import arguments
 from utils import seed_everything
 
 from copy import copy
@@ -97,6 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--change_learning_rate_epochs', default=100, type=int)
     parser.add_argument('--num_workers', default=4, type=int)
     parser.add_argument('--pin_memory', default=False, action='store_true' )
+    parser.add_argument('--method_id', default=1, type=int, help="the method id  ")
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
@@ -148,8 +150,8 @@ if __name__ == '__main__':
     trainX = trainX[index]
     trainY = trainY[index]
     """加载模型"""
-    model = Model_1(no_grad=False)
-    model.load_state_dict(torch.load('submit/61-2/submit_pt/modelSubmit_1.pth',))
+    model = Model_1(no_grad=False, method_id=args.method_id)
+    # model.load_state_dict(torch.load('submit/61-2/submit_pt/modelSubmit_1.pth',))
     model = model.to(DEVICE)
     logging.info(model)
     

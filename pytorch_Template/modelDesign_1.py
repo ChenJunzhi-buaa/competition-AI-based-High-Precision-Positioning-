@@ -3956,50 +3956,88 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision.models import resnet18,resnet34,resnet50,resnext50_32x4d
 class Model_1(nn.Module):
-    def __init__(self, no_grad=True, infer_batchsize=256):
+    def __init__(self, no_grad=True, infer_batchsize=256, method_id=1):
         super(Model_1, self).__init__()
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
-        """resnet 18"""
-        # if self.no_grad == True:
-        #     resnet = resnet18(pretrained=False,)
-        # else:
-        #     resnet = resnet18(pretrained=True,)
-        # # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
-        # resnet.fc = nn.Linear(512,2)
-        # self.net = nn.Sequential(
-        #     # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
-        #     resnet
-        #     )
 
-        """resnet 34"""
-        # if self.no_grad == True:
-        #     resnet = resnet34(pretrained=False,)
-        # else:
-        #     resnet = resnet34(pretrained=True,)
-        # # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
-        # resnet.fc = nn.Linear(512,2)
-        # self.net = nn.Sequential(
-        #     # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
-        #     resnet
-        #     )
+        
+        # if method_id == 1:
+        #     """resnet 18"""
+        #     if self.no_grad == True:
+        #         resnet = resnet18(pretrained=False,)
+        #     else:
+        #         resnet = resnet18(pretrained=True,)
+        #     # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+        #     resnet.fc = nn.Linear(512,2)
+        #     self.net = nn.Sequential(
+        #         # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
+        #         resnet
+        #         )
+        # elif method_id == 2:
+        #     """resnet 34"""
+        #     if self.no_grad == True:
+        #         resnet = resnet34(pretrained=False,)
+        #     else:
+        #         resnet = resnet34(pretrained=True,)
+        #     # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+        #     resnet.fc = nn.Linear(512,2)
+        #     self.net = nn.Sequential(
+        #         # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
+        #         resnet
+        #         )
+        if method_id == 1:
+            """resnet 18"""
+            if self.no_grad == True:
+                efficientnet = resnet18(pretrained=False,)
+            else:
+                efficientnet = resnet18(pretrained=True,)
+            # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+            efficientnet.fc = nn.Linear(512,2)
 
-        """efficientnet_b3"""
-        # if self.no_grad == True:
-        #     efficientnet = efficientnet_b3()
-        # else:
-        #     efficientnet = efficientnet_b3(weights = 'DEFAULT')
-        # efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True), nn.Linear(1536,2))
-        # self.net = efficientnet
+        elif method_id == 2:
+            """resnet 34"""
+            if self.no_grad == True:
+                efficientnet = resnet34(pretrained=False,)
+            else:
+                efficientnet = resnet34(pretrained=True,)
+            # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+            efficientnet.fc = nn.Linear(512,2)
 
-        """efficientnet_b2"""
-        if self.no_grad == True:
-            efficientnet = efficientnet_b2()
-        else:
-            efficientnet = efficientnet_b2(weights = 'DEFAULT')
-        efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True), nn.Linear(1408,2))
+        if method_id == 3:
+            """efficientnet_b3"""
+            if self.no_grad == True:
+                efficientnet = efficientnet_b3()
+            else:
+                efficientnet = efficientnet_b3(weights = 'DEFAULT')
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True), nn.Linear(1536,2))
+
+        elif method_id == 4:
+            """efficientnet_b2"""
+            if self.no_grad == True:
+                efficientnet = efficientnet_b2()
+            else:
+                efficientnet = efficientnet_b2(weights = 'DEFAULT')
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True), nn.Linear(1408,2))
+
+        elif method_id == 5:
+            """efficientnet_b0"""
+            if self.no_grad == True:
+                efficientnet = efficientnet_b0()
+            else:
+                efficientnet = efficientnet_b0(weights = 'DEFAULT')
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True), nn.Linear(1280,2))
+
+        elif method_id == 6:
+            """mobilenet_v2"""
+            from torchvision.models import mobilenet_v2
+            if self.no_grad == True:
+                efficientnet = mobilenet_v2()
+            else:
+                efficientnet = mobilenet_v2(weights = 'DEFAULT')
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=False), nn.Linear(1280,2))
+            
         self.net = efficientnet
-
 
 
     def _forward(self, x, data_format='channels_last'):
@@ -4036,6 +4074,12 @@ class Model_1(nn.Module):
                         batch_out = self._forward(x[i:])
                     _out.append(batch_out)
                 out = torch.cat(_out, axis=0)
+
+                """限制界外输出"""
+                out[:,0][out[:,0]>120.0] = 120.0
+                out[:,0][out[:,0]<0] = 0.0
+                out[:,1][out[:,1]>60.0] = 60.0
+                out[:,1][out[:,1]<0] = 0.0
         else:
             out = self._forward(x)
         

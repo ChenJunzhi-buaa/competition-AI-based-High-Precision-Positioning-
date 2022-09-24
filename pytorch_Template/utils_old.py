@@ -163,6 +163,8 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
                         torch.save(model.state_dict(), os.path.join(os.path.dirname(os.path.dirname(model_save)), f'modelSubmit_2_{epoch+1}epochs.pth'))
                         model.to(torch.device(f"cuda:{args.cuda}"))
                 logging.info('Epoch : %d/%d, Loss: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg))
+                if args.rlrp == True:
+                    scheduler.step(loss_avg)
             elif testX is None and test_loader is not None:
                 test_avg = 0
                 for i, (x, y) in enumerate(test_loader):
@@ -230,6 +232,14 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
                         torch.save(model.state_dict(), model_save)
                         model.to(torch.device(f"cuda:{args.cuda}"))
                 logging.info('Epoch : %d/%d, Loss: %.4f, TestScore: %.4f, BestTestScore: %.4f, test_Loss: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,score,score_max, test_avg))
+                if test_avg < test_avg_min:
+                    test_avg_min = test_avg
+                    if save:
+                        logging.info('min_testloss Model saved!')
+                        # model.to("cuda:0")
+                        model.to("cpu")
+                        torch.save(model.state_dict(), os.path.join(os.path.dirname(os.path.dirname(model_save)), f'modelSubmit_2_min_testloss.pth'))
+                        model.to(torch.device(f"cuda:{args.cuda}"))
         epoch_stop_time = datetime.now()
         logging.info(f"每个epoch耗时{epoch_stop_time-epoch_begin_time}")
     logging.info(datetime.now())
@@ -295,6 +305,7 @@ def pre2():
     parser.add_argument('--num_workers', default=4, type=int)
     parser.add_argument('--pin_memory', default=False, action='store_true' )
     parser.add_argument('--no_test', default=False, action = 'store_true' )
+    parser.add_argument('--smaller_test', default=False, action = 'store_true' )
     args = parser.parse_args()
     TOTAL_EPOCHS = args.epochs
     """注意评测设备只有一块gpu"""
@@ -504,9 +515,13 @@ def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0, if_ada
         logging.info(f"最佳权重为:  {weights}")
         logging.info(f"最佳模型平均的测试分数为:    {test_ave_score_best}")
 
-        
+    logging.info(f"######################### 开始打标签 #####################################")
     Y_pselabeled_s = []
     for model_index, model in enumerate(models):
+        logging.info(f"######################### 第{model_index + 1}个模型打标签 #####################################")
+        if weights[model_index] == 0:
+            Y_pselabeled_s.append(torch.zeros((X.shape[0],2)))
+            continue
         model = model.to(torch.device(f"cuda:{args.cuda}"))
         model.eval()
         batch_num = X.shape[0]//BATCH_SIZE + bool(X.shape[0]%BATCH_SIZE)
@@ -527,7 +542,7 @@ def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0, if_ada
             Y_pselabeled_s.append(Y_pselabeled)
             if if_weight == True and if_adaptive_weight_thres == False:
                 weights[model_index] = get_weight(model, weight_thres)
-    
+    logging.info(f"######################### 打标签结束 #####################################")
     logging.info(f"weights{weights}")
     if if_adaptive_weight_thres == False:
         """测一下集成模型在验证集上的score"""
