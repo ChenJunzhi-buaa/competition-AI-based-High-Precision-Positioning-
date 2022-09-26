@@ -3960,7 +3960,14 @@ class Model_1(nn.Module):
         super(Model_1, self).__init__()
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
-
+        self.method_id = method_id
+        self.thres = 99.7
+        self.weights = torch.tensor([
+            99.87898470447 + 99.89621302308,
+            99.7609134932 + 99.768,
+            99.76148569599 + 99.75263203506,
+        ]) - self.thres*2
+        self.weights = self.weights/self.weights.sum()
         
         # if method_id == 1:
         #     """resnet 18"""
@@ -3986,7 +3993,12 @@ class Model_1(nn.Module):
         #         # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
         #         resnet
         #         )
-        if method_id == 1:
+        if method_id == 0:
+            self.net1 = Model_1(no_grad=True, method_id=1)
+            self.net2 = Model_1(no_grad=True, method_id=4)
+            self.net3 = Model_1(no_grad=True, method_id=5)
+
+        elif method_id == 1:
             """resnet 18"""
             if self.no_grad == True:
                 efficientnet = resnet18(pretrained=False,)
@@ -4036,30 +4048,43 @@ class Model_1(nn.Module):
             else:
                 efficientnet = mobilenet_v2(weights = 'DEFAULT')
             efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=False), nn.Linear(1280,2))
-            
-        self.net = efficientnet
+        if self.method_id != 0:
+            self.net = efficientnet
+        
+
+
 
 
     def _forward(self, x, data_format='channels_last'):
-        """方式1：设为0"""
-        # x[:,:,4:20,:]=0
-        # x[:,:,24:48,:]=0
-        # x[:,:,52:68,:]=0
-        # x.shape ([bs, 256, 72, 2])
-        """方式2：去掉不用通道"""
-        # x = torch.cat((x[:,:,0:4,:], x[:,:,20:24,:], x[:,:,48:52,:], x[:,:,68:,:]), dim=2)
-        
-        """方式1：幅值复制三份"""
-        # x = x.norm(dim=-1)
-        # x = x.unsqueeze(1)
-        # x = x.repeat(1,3,1,1)
-        """方式2：实部虚部幅值"""
-        x_norm = x.norm(dim=-1)
-        x_norm = x_norm.unsqueeze(3)
-        x = torch.cat((x,x_norm),dim=3)
-        x = x.permute(0,3,1,2)
 
-        return self.net(x)
+        if self.method_id == 0:
+            out = 0
+            # num_net = 0
+            for i in range(1,10):
+                if hasattr(self, f'net{i}'):
+                    out = out + getattr(self, f'net{i}')(x) * self.weights[i-1]
+                    # num_net = num_net + 1
+            return out
+
+        else:
+            """方式1：设为0"""
+            # x[:,:,4:20,:]=0
+            # x[:,:,24:48,:]=0
+            # x[:,:,52:68,:]=0
+            # x.shape ([bs, 256, 72, 2])
+            """方式2：去掉不用通道"""
+            # x = torch.cat((x[:,:,0:4,:], x[:,:,20:24,:], x[:,:,48:52,:], x[:,:,68:,:]), dim=2)
+            
+            """方式1：幅值复制三份"""
+            # x = x.norm(dim=-1)
+            # x = x.unsqueeze(1)
+            # x = x.repeat(1,3,1,1)
+            """方式2：实部虚部幅值"""
+            x_norm = x.norm(dim=-1)
+            x_norm = x_norm.unsqueeze(3)
+            x = torch.cat((x,x_norm),dim=3)
+            x = x.permute(0,3,1,2)
+            return self.net(x)
 
     def forward(self, x, data_format='channels_last'):
         if self.no_grad == True:
