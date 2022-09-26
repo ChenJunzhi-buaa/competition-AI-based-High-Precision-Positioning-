@@ -30,7 +30,15 @@ def pre2():
     parser.add_argument('--num_workers', default=4, type=int)
     parser.add_argument('--pin_memory', default=False, action='store_true' )
     parser.add_argument('--no_test', default=False, action = 'store_true' )
+    parser.add_argument('--copy_test', default=False, action = 'store_true' )
     parser.add_argument('--smaller_test_split', default=None, type=float, help='split test set to be more small' )
+    
+    parser.add_argument('--no_esembled', default=False, action='store_true' )
+    parser.add_argument('--no_esembled_half', default=False, action='store_true' )
+    parser.add_argument('--no_esembled_3000', default=False, action='store_true' )
+    
+    parser.add_argument('--half_pseudo', default=False, action='store_true', help='use only half of the psesudo ' )
+    parser.add_argument('--_3000_pseudo', default=False, action='store_true', help='use only 3000 of the psesudo ' )
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     """保存好要提交的文件、训练代码、训练日志"""

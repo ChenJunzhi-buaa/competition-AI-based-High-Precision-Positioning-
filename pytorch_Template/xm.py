@@ -72,9 +72,7 @@ trainX = torch.from_numpy(trainX_labeled.astype(np.float32)).to(DEVICE)
 
 # test(model_4)
 
-# class EsembleNet():
-#         self.net1 = Model_2()
-#         self.net2 = Helpnet()
+
 
 
 

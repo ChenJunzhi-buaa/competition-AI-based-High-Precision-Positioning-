@@ -96,8 +96,8 @@ def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0, if_ada
         y_test_s = predict(args, testX, *models)
         score_s = [score(y_test_s[i], testY) for i in range(len(models))]
         logging.info(f"所有{len(models)}个子模型，各自的验证分数分别为:\n{score_s}")
-        for weight_thres_pre in np.arange(98.0,98.8,0.01): 
-            for weight_add in np.arange(0,2.0,0.01):
+        for weight_thres_pre in np.arange(98.0,99.1,0.01): 
+            for weight_add in np.arange(0,4.0,0.01):
                 logging.info(f"########################################################################")
                 logging.info(f"权重阈值为:  {weight_thres_pre}  时：")
                 logging.info(f"权重附加值为:    {weight_add}    时：")

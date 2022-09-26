@@ -45,20 +45,48 @@ if __name__ == '__main__':
             # model_1 =model.to(DEVICE)
             models.append(model)
         """自己的集成模型"""
-        # for i in [1, 4, 6, 24]:
-        #     folder_name = f'59-{i}'
-        #     while os.path.exists(os.path.join('./submit/', folder_name, 'submit_pt/modelSubmit_2.pth')):
+        if args.no_esembled == False:
+            for i in range(0,30):
+                folder_name = f'59-{i}'
+                model_address = os.path.join('./submit/', folder_name, 'submit_pt/modelSubmit_2.pth')
+                while os.path.exists(model_address): 
+                    logging.info(f'集成已有的集成模型的路径: {model_address}')
+                    model = Model_2(method_id=i)
+                    model.load_state_dict(torch.load(model_address))
+                    # model_1 =model.to(DEVICE)
+                    models.append(model)
 
-        #         model_address = f'./submit/59-{i}/submit_pt/modelSubmit_2.pth'
-        #         logging.info(f'集成已有的集成模型的路径: {model_address}')
-        #         model = Model_2(method_id=i)
-        #         model.load_state_dict(torch.load(model_address))
-        #         # model_1 =model.to(DEVICE)
-        #         models.append(model)
+                    folder_name = folder_name + f'-{i}'
+                    model_address = os.path.join('./submit/', folder_name, 'submit_pt/modelSubmit_2.pth')
+        """自己的二代集成模型（只用一半半监督数据）"""
+        if args.no_esembled_half == False:
+            for i in range(0,30):
+                folder_name = f'62-{i}'
+                model_address = os.path.join('./submit/', folder_name, 'submit_pt/modelSubmit_2.pth')
+                while os.path.exists(model_address): 
+                    logging.info(f'集成已有的集成模型的路径: {model_address}')
+                    model = Model_2(method_id=i)
+                    model.load_state_dict(torch.load(model_address))
+                    # model_1 =model.to(DEVICE)
+                    models.append(model)
 
-        #         folder_name = folder_name + f'-{i}'
+                    folder_name = folder_name + f'-{i}'
+                    model_address = os.path.join('./submit/', folder_name, 'submit_pt/modelSubmit_2.pth')
 
+        """自己的三代集成模型（只用3000个半监督数据）"""
+        if args.no_esembled_3000 == False:
+            for i in range(0,30):
+                folder_name = f'63-{i}'
+                model_address = os.path.join('./submit/', folder_name, 'submit_pt/modelSubmit_2.pth')
+                while os.path.exists(model_address): 
+                    logging.info(f'集成已有的集成模型的路径: {model_address}')
+                    model = Model_2(method_id=i)
+                    model.load_state_dict(torch.load(model_address))
+                    # model_1 =model.to(DEVICE)
+                    models.append(model)
 
+                    folder_name = folder_name + f'-{i}'
+                    model_address = os.path.join('./submit/', folder_name, 'submit_pt/modelSubmit_2.pth')
         Y_pselabeled_ave = label(args, trainX_unlabeled, 1000, True, 98.05, True, *models)
 
 
@@ -79,8 +107,13 @@ if __name__ == '__main__':
         red = p.map(f, [args])
     Y_pselabeled_ave = torch.load(os.path.join(id_path, 'Y_pselabeled_ave.pth'))
     if args.no_test == True:
-        confusion_X = torch.cat((trainX_labeled, trainX_unlabeled, testX_labeled), axis=0)
-        confusion_Y = torch.cat((trainY_labeled, Y_pselabeled_ave, testY_labeled), axis=0)
+        if args.copy_test == True:
+            confusion_X = torch.cat((trainX_labeled, trainX_unlabeled, testX_labeled.repeat(16,*([1]*(len(testX_labeled.shape)-1)))), axis=0)
+            confusion_Y = torch.cat((trainY_labeled, Y_pselabeled_ave, testY_labeled.repeat(16,*([1]*(len(testY_labeled.shape)-1)))), axis=0)
+        else:
+            confusion_X = torch.cat((trainX_labeled, trainX_unlabeled, testX_labeled), axis=0)
+            confusion_Y = torch.cat((trainY_labeled, Y_pselabeled_ave, testY_labeled), axis=0)
+        
     elif args.smaller_test_split is not None:
         confusion_X = torch.cat((trainX_labeled, trainX_unlabeled, testX_labeled[int(args.smaller_test_split * len(testX_labeled)):]), axis=0)
         confusion_Y = torch.cat((trainY_labeled, Y_pselabeled_ave, testY_labeled[int(args.smaller_test_split * len(testX_labeled)):]), axis=0)
@@ -91,6 +124,41 @@ if __name__ == '__main__':
                                                num_workers=args.num_workers,
                                                pin_memory=args.pin_memory
                                                )  # shuffle 标识要打乱顺序
+        logging.info(f"测试集数量：{len(test_dataset)}")
+    elif args.half_pseudo == True:
+        pseudo_len = len(trainX_unlabeled)
+        pseudo_half_index = torch.randperm(pseudo_len)[:int(pseudo_len/2)]
+        trainX_unlabeled_half = trainX_unlabeled[pseudo_half_index]
+        Y_pselabeled_ave_half = Y_pselabeled_ave[pseudo_half_index]
+        confusion_X = torch.cat((trainX_labeled, trainX_unlabeled_half), axis=0)
+        confusion_Y = torch.cat((trainY_labeled, Y_pselabeled_ave_half), axis=0)
+        test_dataset = MyDataset(testX_labeled,testY_labeled,split_ratio=0)
+        test_loader = DataLoader(dataset=test_dataset,
+                                               batch_size=args.big_bs,
+                                               shuffle=True,
+                                               num_workers=args.num_workers,
+                                               pin_memory=args.pin_memory
+                                               )  # shuffle 标识要打乱顺序                            
+
+        logging.info(f"测试集数量：{len(test_dataset)}")
+    elif args._3000_pseudo == True:
+        pseudo_len = len(trainX_unlabeled)
+        pseudo_half_index = torch.randperm(pseudo_len)[:3000]
+        trainX_unlabeled_half = trainX_unlabeled[pseudo_half_index]
+        Y_pselabeled_ave_half = Y_pselabeled_ave[pseudo_half_index]
+        confusion_X = torch.cat((trainX_labeled, trainX_unlabeled_half), axis=0)
+        confusion_Y = torch.cat((trainY_labeled, Y_pselabeled_ave_half), axis=0)
+        test_dataset = MyDataset(testX_labeled,testY_labeled,split_ratio=0)
+        test_loader = DataLoader(dataset=test_dataset,
+                                               batch_size=args.big_bs,
+                                               shuffle=True,
+                                               num_workers=args.num_workers,
+                                               pin_memory=args.pin_memory
+                                               )  # shuffle 标识要打乱顺序                            
+
+        logging.info(f"测试集数量：{len(test_dataset)}")
+        args.big_bs = int(args.big_bs/4)
+        logging.info(f"新bs：{args.big_bs}")
     else:
         confusion_X = torch.cat((trainX_labeled, trainX_unlabeled), axis=0)
         confusion_Y = torch.cat((trainY_labeled, Y_pselabeled_ave), axis=0)
@@ -102,7 +170,7 @@ if __name__ == '__main__':
                                                pin_memory=args.pin_memory
                                                )  # shuffle 标识要打乱顺序                            
 
-    logging.info(f"测试集数量：{len(test_dataset)}")
+        logging.info(f"测试集数量：{len(test_dataset)}")
     train_dataset = MyDataset(confusion_X,confusion_Y,split_ratio=0)
     train_loader = DataLoader(dataset=train_dataset,
                                                batch_size=args.big_bs,

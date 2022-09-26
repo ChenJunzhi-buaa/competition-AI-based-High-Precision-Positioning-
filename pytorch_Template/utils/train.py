@@ -143,7 +143,7 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
                         model.to("cpu")
                         torch.save(model.state_dict(), os.path.join(os.path.dirname(os.path.dirname(model_save)), f'modelSubmit_2_min_testloss.pth'))
                         model.to(torch.device(f"cuda:{args.cuda}"))
-                logging.info('Epoch : %d/%d, Loss: %.4f, TestScore: %.4f, BestTestScore: %.4f, test_Loss: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,score,score_max, test_avg))
+                logging.info('Epoch : %d/%d, Loss: %.4f, TestScore: %.4f, BestTestScore: %.4f, test_Loss: %.4f, test_Loss_min: %.4f' % (epoch + 1, TOTAL_EPOCHS, loss_avg,score,score_max, test_avg, test_avg_min))
         epoch_stop_time = datetime.now()
         logging.info(f"每个epoch耗时{epoch_stop_time-epoch_begin_time}")
     logging.info(datetime.now())
