@@ -1,26 +1,25 @@
-from modelDesign_1 import Model_1
+from modelDesign_2 import Model_2
 import torch
 import os
 from shutil import copyfile
 import numpy as np
 from score import test
-ese = Model_1(method_id=0)
+ese = Model_2(method_id=0)
 
 state_dict = dict()
 
-ckpt1 = torch.load('/data/cjz/location/submit/61-5-2-2-2-2-7796epochs/submit_pt/modelSubmit_1.pth')
-ckpt2 = torch.load('/data/cjz/location/submit/61-3-4/submit_pt/modelSubmit_1.pth')
-ckpt3 = torch.load('/data/cjz/location/submit/61-6/submit_pt/modelSubmit_1.pth')
-ckpt4 = torch.load('/data/cjz/location/submit/61-5-5-5-5-5-5-5/modelSubmit_2_2000epochs.pth')
-ckpt5 = torch.load('/data/cjz/location/submit/61-5-2-2-2-2961epochs/modelSubmit_2_min_testloss.pth')
-ckpt6 = torch.load('/data/cjz/location/submit/61-5-3423epoch/submit_pt/modelSubmit_1.pth')
-# ckpt7 = torch.load('/data/cjz/location/submit/43/submit_pt/modelSubmit_1.pth')
-ckpts = [ckpt1, ckpt2, ckpt3, ckpt4, ckpt5, ckpt6]
-for i in [1,2,3,4,5,6]:
-    ckpt = ckpts[i-1]
-    for key in list(ckpt.keys()):
-        new_key = f'net{i}.' + key 
-        state_dict[new_key] = ckpt[key]
+ckpts = [1]*100
+ckpts[4] = torch.load('/data/cjz/location/submit/59-4/submit_pt/modelSubmit_2.pth')
+ckpts[6] = torch.load('/data/cjz/location/submit/59-6/submit_pt/modelSubmit_2.pth')
+ckpts[7] = torch.load('/data/cjz/location/submit/59-7/submit_pt/modelSubmit_2.pth')
+ckpts[25] = torch.load('/data/cjz/location/submit/59-25-531epochs/submit_pt/modelSubmit_2.pth')
+ckpts[35] = torch.load('/data/cjz/location/submit/59-25-25-25-25-25-25_/modelSubmit_2_1600epochs.pth')
+for i in range(100):
+    if ckpts[i] is not 1:
+        ckpt = ckpts[i]
+        for key in list(ckpt.keys()):
+            new_key = f'net{i}.' + key 
+            state_dict[new_key] = ckpt[key]
 
 # for key in list(ckpt2.keys()):
 #     new_key = 'net2.' + key 
@@ -38,7 +37,7 @@ parser.add_argument('--float16', default=False, action = 'store_true' )
 
 args = parser.parse_args()
 i = args.submit_id
-model_save = '/data/cjz/location/submit/_ese'
+model_save = '/data/cjz/location/submit/_ese2'
 if not os.path.exists(os.path.join(model_save, str(i))):
     os.mkdir(os.path.join(model_save, str(i)))
 
@@ -46,9 +45,9 @@ if not os.path.exists(os.path.join(model_save, str(i))):
 
 if args.float16 == True:
     ese.half()
-torch.save(ese.state_dict(), os.path.join(model_save, str(i),  f'modelSubmit_1.pth'))
-copyfile('/data/cjz/location/pytorch_Template/modelDesign_1.py', os.path.join(model_save, str(i), 'modelDesign_1.py'))
-copyfile(__file__, os.path.join(model_save, str(i), 'model1_esemble.py'))
+torch.save(ese.state_dict(), os.path.join(model_save, str(i),  f'modelSubmit_2.pth'))
+copyfile('/data/cjz/location/pytorch_Template/modelDesign_2.py', os.path.join(model_save, str(i), 'modelDesign_2.py'))
+copyfile(__file__, os.path.join(model_save, str(i), 'model2_esemble.py'))
 
 
 
@@ -77,8 +76,8 @@ copyfile(__file__, os.path.join(model_save, str(i), 'model1_esemble.py'))
 # model1s.append(model)
 
 # 集成模型##
-model1 = Model_1(method_id=0)
-model1.load_state_dict(torch.load(f'/data/cjz/location/submit/_ese/{args.submit_id}/modelSubmit_1.pth'))
+model2 = Model_2(method_id=0)
+model2.load_state_dict(torch.load(f'/data/cjz/location/submit/_ese2/{args.submit_id}/modelSubmit_2.pth'))
 file_name1 = 'data/Case_1_2_Training.npy'
 # logging.info('The current dataset is : %s'%(file_name1))
 CIR = np.load(file_name1)
@@ -91,7 +90,7 @@ trainY = POS.transpose((1,0)) #[none, 2]
 
 testX = torch.tensor(trainX, dtype=torch.float32)
 testY = torch.tensor(trainY, dtype=torch.float32)
-test(testX, testY, model1)
+test(testX, testY, model2)
 
 # test(testX, testY, *model1s)
 print(1)

@@ -107,7 +107,12 @@ if __name__ == '__main__':
         red = p.map(f, [args])
     Y_pselabeled_ave = torch.load(os.path.join(id_path, 'Y_pselabeled_ave.pth'))
     if args.no_test == True:
-        if args.copy_test == True:
+        if args._3000_pseudo == True:
+                pseudo_len = len(trainX_unlabeled)
+                pseudo_half_index = torch.randperm(pseudo_len)[:3000]
+                trainX_unlabeled = trainX_unlabeled[pseudo_half_index]
+                Y_pselabeled_ave = Y_pselabeled_ave[pseudo_half_index]
+        if args.copy_test == True:    
             confusion_X = torch.cat((trainX_labeled, trainX_unlabeled, testX_labeled.repeat(16,*([1]*(len(testX_labeled.shape)-1)))), axis=0)
             confusion_Y = torch.cat((trainY_labeled, Y_pselabeled_ave, testY_labeled.repeat(16,*([1]*(len(testY_labeled.shape)-1)))), axis=0)
         else:

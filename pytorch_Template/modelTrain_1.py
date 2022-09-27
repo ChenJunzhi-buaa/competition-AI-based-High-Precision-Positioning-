@@ -100,6 +100,8 @@ if __name__ == '__main__':
     parser.add_argument('--pin_memory', default=False, action='store_true' )
     parser.add_argument('--method_id', default=1, type=int, help="the method id  ")
     parser.add_argument('--no_test', default=False, action = 'store_true' )
+    
+    parser.add_argument('--half_pre', default=False, action = 'store_true' )
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
@@ -155,12 +157,17 @@ if __name__ == '__main__':
     # model.load_state_dict(torch.load('submit/61-2/submit_pt/modelSubmit_1.pth',))
     model = model.to(DEVICE)
     logging.info(model)
+    if args.half_pre == True:
+        date_type = torch.float16
+        model = model.half()
+    else:
+        date_type = torch.float32
     if args.no_test == False:
         train_num = int(len(trainX) * (1-split_ratio))
-        testX = torch.tensor(trainX[train_num:], dtype = torch.float)
-        testY = torch.tensor(trainY[train_num:], dtype = torch.float)
-        trainX = torch.tensor(trainX[:train_num], dtype = torch.float)
-        trainY = torch.tensor(trainY[:train_num], dtype = torch.float)
+        testX = torch.tensor(trainX[train_num:], dtype = date_type)
+        testY = torch.tensor(trainY[train_num:], dtype = date_type)
+        trainX = torch.tensor(trainX[:train_num], dtype = date_type)
+        trainY = torch.tensor(trainY[:train_num], dtype = date_type)
 
         train_dataset = MyDataset(trainX,trainY,split_ratio=0)
         train_loader = DataLoader(dataset=train_dataset,
@@ -176,8 +183,8 @@ if __name__ == '__main__':
                                                 pin_memory=args.pin_memory)  # shuffle 标识要打乱顺序
         train(args, model, 10000, args.epochs, train_loader, model_save, test_loader, True, testX, testY )
     else:
-        trainX = torch.tensor(trainX, dtype = torch.float)
-        trainY = torch.tensor(trainY, dtype = torch.float)
+        trainX = torch.tensor(trainX, dtype = date_type)
+        trainY = torch.tensor(trainY, dtype = date_type)
         train_dataset = MyDataset(trainX,trainY,split_ratio=0)
         train_loader = DataLoader(dataset=train_dataset,
                                                 batch_size=BATCH_SIZE,

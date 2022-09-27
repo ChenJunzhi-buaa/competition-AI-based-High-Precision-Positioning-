@@ -3961,11 +3961,11 @@ import copy
 import torchvision
 
 class Model_2(nn.Module):
-    def __init__(self, no_grad=True, infer_batchsize=256, if_classifier=False, method_id=1):
+    def __init__(self, no_grad=True, infer_batchsize=256, if_classifier=False, method_id=0):
         super(Model_2, self).__init__()
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
-
+        self.method_id  = method_id
         
         """vit_h_14"""
         # if self.no_grad == True:
@@ -3979,10 +3979,21 @@ class Model_2(nn.Module):
         ## self.classifier = nn.Linear(7392,18)
 
 
-
-
-
-        
+        if method_id == 0:
+            self.net4 = Model_2(no_grad=True, method_id=4)
+            self.net6 = Model_2(no_grad=True, method_id=6)
+            self.net7 = Model_2(no_grad=True, method_id=7)
+            self.net25 = Model_2(no_grad=True, method_id=25)
+            self.net35 = Model_2(no_grad=True, method_id=25)
+            self.thres = 98.8
+            self.weights = torch.zeros(100)
+            self.weights[4] = 98.87996029798 - self.thres
+            self.weights[6] = 98.85448660916 - self.thres
+            self.weights[7] = 98.87380283811 - self.thres
+            self.weights[25] = 98.90117509282 - self.thres
+            self.weights[35] = 98.88552945850 - self.thres
+            self.weights = self.weights/self.weights.sum()
+            self.if_classifier = if_classifier
         if method_id == 1:
             """efficientnet_b6"""
             if self.no_grad == True:
@@ -4329,21 +4340,27 @@ class Model_2(nn.Module):
             # self.classifier = nn.Linear(512,18)
 
     def _forward(self, x, data_format='channels_last'):
-        
-        """方式1：幅值复制三份"""
-        # x = x.norm(dim=-1)
-        # x = x.unsqueeze(1)
-        # x = x.repeat(1,3,1,1)
-        """方式2：实部虚部幅值"""
-        x_norm = x.norm(dim=-1)
-        x_norm = x_norm.unsqueeze(3)
-        x = torch.cat((x,x_norm),dim=3)
-        x = x.permute(0,3,1,2)
-        
-        if self.if_classifier == True:
-            return self.regression(self.backbone(x)), self.classifier(self.backbone(x))
+        if self.method_id == 0:
+            out = 0
+            for i in range(1,50):
+                if hasattr(self, f'net{i}'):
+                    out = out + getattr(self, f'net{i}')(x) * self.weights[i]
+            return(out)
         else:
-            return  self.regression(self.backbone(x))
+            """方式1：幅值复制三份"""
+            # x = x.norm(dim=-1)
+            # x = x.unsqueeze(1)
+            # x = x.repeat(1,3,1,1)
+            """方式2：实部虚部幅值"""
+            x_norm = x.norm(dim=-1)
+            x_norm = x_norm.unsqueeze(3)
+            x = torch.cat((x,x_norm),dim=3)
+            x = x.permute(0,3,1,2)
+            
+            if self.if_classifier == True:
+                return self.regression(self.backbone(x)), self.classifier(self.backbone(x))
+            else:
+                return  self.regression(self.backbone(x))
     def _tta_forward(self, x, num=5):
         out = self._forward(x)
         aug_times = 10
@@ -4354,6 +4371,9 @@ class Model_2(nn.Module):
         return out
 
     def forward(self, x, data_format='channels_last'):
+        ba = [i for i in self.state_dict().items()]
+        if ba[-1][-1].dtype is not torch.float32:
+            self.float()
         if self.no_grad == True and self.if_classifier == False:
             self.eval()
            

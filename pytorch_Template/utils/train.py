@@ -30,8 +30,8 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
         #Training in this epoch  
         loss_avg = 0
         for i, (x, y) in enumerate(train_loader):
-            x = x.float().to(torch.device(f"cuda:{args.cuda}"))
-            y = y.float().to(torch.device(f"cuda:{args.cuda}"))
+            x = x.to(torch.device(f"cuda:{args.cuda}"))
+            y = y.to(torch.device(f"cuda:{args.cuda}"))
             
             # 清零
             optimizer.zero_grad()
@@ -71,8 +71,8 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
             elif testX is None and test_loader is not None:
                 test_avg = 0
                 for i, (x, y) in enumerate(test_loader):
-                    x = x.float().to(torch.device(f"cuda:{args.cuda}"))
-                    y = y.float().to(torch.device(f"cuda:{args.cuda}"))
+                    x = x.to(torch.device(f"cuda:{args.cuda}"))
+                    y = y.to(torch.device(f"cuda:{args.cuda}"))
 
                     if args.classifier == True:
                         output_r, output_c = model(x)
@@ -106,8 +106,8 @@ def train(args, model, test_avg_min, TOTAL_EPOCHS, train_loader, model_save, tes
                 """"记录一下测试loss，与score的变化进行比较"""
                 test_avg = 0
                 for i, (x, y) in enumerate(test_loader):
-                    x = x.float().to(torch.device(f"cuda:{args.cuda}"))
-                    y = y.float().to(torch.device(f"cuda:{args.cuda}"))
+                    x = x.to(torch.device(f"cuda:{args.cuda}"))
+                    y = y.to(torch.device(f"cuda:{args.cuda}"))
 
                     if args.classifier == True:
                         output_r, output_c = model(x)

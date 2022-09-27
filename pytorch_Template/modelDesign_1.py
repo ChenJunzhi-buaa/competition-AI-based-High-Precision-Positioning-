@@ -3956,16 +3956,20 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision.models import resnet18,resnet34,resnet50,resnext50_32x4d
 class Model_1(nn.Module):
-    def __init__(self, no_grad=True, infer_batchsize=256, method_id=1):
+    def __init__(self, no_grad=True, infer_batchsize=256, method_id=0):
         super(Model_1, self).__init__()
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
         self.method_id = method_id
-        self.thres = 99.7
+        self.thres = 99.75
         self.weights = torch.tensor([
             99.87898470447 + 99.89621302308,
             99.7609134932 + 99.768,
             99.76148569599 + 99.75263203506,
+            99.86963232831 + 99.88154014585,
+            99.87672947488 + 99.89408065593,
+            99.85319069093 + 99.85319069093,
+            # 99.83723944491 + 99.83099084369,
         ]) - self.thres*2
         self.weights = self.weights/self.weights.sum()
         
@@ -3997,7 +4001,10 @@ class Model_1(nn.Module):
             self.net1 = Model_1(no_grad=True, method_id=1)
             self.net2 = Model_1(no_grad=True, method_id=4)
             self.net3 = Model_1(no_grad=True, method_id=5)
-
+            self.net4 = Model_1(no_grad=True, method_id=1)
+            self.net5 = Model_1(no_grad=True, method_id=1)
+            self.net6 = Model_1(no_grad=True, method_id=100)
+            # self.net7 = Model_1(no_grad=True, method_id=100)
         elif method_id == 1:
             """resnet 18"""
             if self.no_grad == True:
@@ -4048,7 +4055,47 @@ class Model_1(nn.Module):
             else:
                 efficientnet = mobilenet_v2(weights = 'DEFAULT')
             efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=False), nn.Linear(1280,2))
-        if self.method_id != 0:
+
+        elif method_id == 7:
+            """efficientnet_b1"""
+            if self.no_grad == True:
+                efficientnet = efficientnet_b1()
+            else:
+                efficientnet = efficientnet_b1(weights = 'DEFAULT')
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True), nn.Linear(1280,2))
+
+        elif method_id == 8:
+            """efficientnet_b4"""
+            if self.no_grad == True:
+                efficientnet = efficientnet_b4()
+            else:
+                efficientnet = efficientnet_b4(weights = 'DEFAULT')
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.4, inplace=True), nn.Linear(1792,2))
+
+        elif method_id == 9:
+            """mnasnet1_3"""
+            from torchvision.models import mnasnet1_3
+            if self.no_grad == True:
+                efficientnet = mnasnet1_3()
+            else:
+                efficientnet = mnasnet1_3(weights = 'DEFAULT')
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True), nn.Linear(1280,2))
+
+
+        elif method_id == 100:
+            """resnet 18 例外"""
+            if self.no_grad == True:
+                resnet = resnet18(pretrained=False,)
+            else:
+                resnet = resnet18(pretrained=True,)
+            # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+            resnet.fc = nn.Linear(512,2)
+            self.net = nn.Sequential(
+                # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
+                resnet
+                )
+
+        if self.method_id != 0 and self.method_id != 100:
             self.net = efficientnet
         
 
@@ -4087,6 +4134,9 @@ class Model_1(nn.Module):
             return self.net(x)
 
     def forward(self, x, data_format='channels_last'):
+        ba = [i for i in self.state_dict().items()]
+        if ba[-1][-1].dtype is not torch.float32:
+            self.float()
         if self.no_grad == True:
             self.eval()
            
