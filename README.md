@@ -1,5 +1,6 @@
 # competition-AI-based-High-Precision-Positioning
-竞赛记录https://datafountain.cn/competitions/575/ranking?isRedance=0&sch=1954
+竞赛记录https://datafountain.cn/competitions/575/ranking?isRedance=0&sch=1954  
+代码在 4卡3090 `/data/cjz/location/`
 
 # 涉及到的代码技巧
 | 涉及到的代码技巧 | 代码 |
