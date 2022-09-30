@@ -1,12 +1,7 @@
-# TODO 
-# 数据增强：全用和只用4个；用4、5、6、---、16个
-# 改loss，改为dist和评测对应的
-# 分测试集之前，打乱一下可能比较好
-# 从某个checkpoint开始训练
-# 模型集成bagging，5折
-# 把模型变大
-# 时域频域变换
-# 归0的和不归0的，数据扩增，或许还能用在model2
+#--coding: utf-8--
+"""
+model1的训练文件
+"""
 from ast import arguments
 from utils import seed_everything
 
@@ -26,57 +21,6 @@ from datetime import datetime
 import copy
 from utils import train, MyDataset
 from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau,CosineAnnealingLR,CosineAnnealingWarmRestarts
-# class MyDataset(Dataset):
-#     def __init__(self, trainX,trainY,split_ratio):
-#         N = trainX.shape[0]
-       
-#         TrainNum = int((N*(1-split_ratio)))
-#         self.x = trainX[:TrainNum].astype(np.float32)
-#         self.y = trainY[:TrainNum].astype(np.float32)
-
-#         self.len = len(self.y)
-
-#     def __len__(self):
-#         return self.len
-
-#     def __getitem__(self, idx):     
-#         x = self.x[idx]
-#         y = self.y[idx]
-        
-#         return (x, y)
-
-# class MyTestset(Dataset):
-#     def __init__(self, trainX,trainY,split_ratio):
-#         N = trainX.shape[0]
-       
-#         TrainNum = int((N*(1-split_ratio)))
-#         self.x = trainX[TrainNum:].astype(np.float32)
-#         self.y = trainY[TrainNum:].astype(np.float32)
-
-#         self.len = len(self.y)
-
-#     def __len__(self):
-#         return self.len
-
-#     def __getitem__(self, idx):     
-#         x = self.x[idx]
-#         y = self.y[idx]
-        
-#         return (x, y)
- 
-
-
-# BATCH_SIZE = 100
-# LEARNING_RATE = 0.001
-# TOTAL_EPOCHS = 10000
-# split_ratio = 0.1
-# change_learning_rate_epochs = 100
-
-
-# DEVICE=torch.device("cpu")
-# if torch.cuda.is_available():
-#         DEVICE=torch.device("cuda:0")
-
 
 if __name__ == '__main__':
     """命令行参数"""

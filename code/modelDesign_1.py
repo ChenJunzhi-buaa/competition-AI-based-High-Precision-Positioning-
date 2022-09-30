@@ -1,3 +1,9 @@
+#--coding: utf-8--
+"""
+model1 的模型文件
+由于efficient模型在评测系统的torchvision中没有,因此写到这里
+"""
+
 import copy
 import math
 import warnings
@@ -3878,9 +3884,9 @@ model_urls = _ModelURLs(
     }
 )
 
-# -*- coding: utf-8 -*-
-# torch==1.2.0
-"""官方"""
+
+
+"""官方模型"""
 # import h5py
 # import numpy as np
 
@@ -3945,408 +3951,228 @@ model_urls = _ModelURLs(
 #         # out[:,1][out[:,1]>60]=60
 #         # out[:,1][out[:,1]<0]=0
 #         return out
+class ResBlock(nn.Module):
+    def __init__(self, n_chans):
+        super(ResBlock, self).__init__()
+        self.conv1 = nn.Conv2d(n_chans, n_chans,
+                              kernel_size=3, padding=1,
+                              bias=False)
+        self.conv2 = nn.Conv2d(n_chans, n_chans,
+                               kernel_size=3, padding=1,
+                               bias=False)
+        self.batch_norm = nn.BatchNorm2d(num_features=n_chans)
+
+    def forward(self, x):
+        out = self.conv1(x)
+        # out = self.conv2(out)
+        out = self.batch_norm(out)
+        out = torch.relu(out)
+        return out + x
+
+class Xm_1(nn.Module):
+    def __init__(self):
+        super(Xm_1, self).__init__()
+        self.net = nn.Sequential(
+            
+            nn.Conv2d(256, 256, kernel_size = 3, stride = 1, padding= 1),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.MaxPool2d(kernel_size=(2,1), stride=(2,1), padding=0),
+            nn.Conv2d(256, 256, kernel_size = 3, stride = 1, padding= 1),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.MaxPool2d(kernel_size=(2, 1), stride=(2, 1), padding=0),
+            nn.Conv2d(256, 512, kernel_size = 3, stride = 1, padding= 1),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            # nn.MaxPool2d(kernel_size=(2, 1), stride=(2, 1), padding=0),
+            nn.Conv2d(512, 768, kernel_size=3, stride=1, padding=1),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            # nn.MaxPool2d(kernel_size=(2, 1), stride=(2, 1), padding=0),
+            # ResBlock(768),
+            # ResBlock(768),
+            nn.Flatten(),
+            nn.Linear(41472,2),
+            # nn.Dropout(0.2),
+            # nn.Linear(10,2)
+        )
 
 
+    def forward(self, x, data_format='channels_last'):
+        x_norm = x.norm(dim=-1)
+        x_norm = x_norm.unsqueeze(3)
+        x = torch.cat((x, x_norm), dim=3)
+        # x.shape ([bs, 256, 72, 2])
+        # x = x.permute(0, 2, 1, 3)
+        
+        out = self.net(x)
+
+        return out
 
 
+"""主模型"""
+import h5py
 import numpy as np
 
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-# from torchvision.models import resnet18,resnet34,resnet50,resnet101,resnext50_32x4d,resnext101_32x8d, vit_h_14, regnet_y_128gf,efficientnet_b6
-from torchvision.models import resnet18,resnet34,resnet50,resnet101,resnext50_32x4d,resnext101_32x8d,mnasnet1_3, shufflenet_v2_x2_0,densenet201,mobilenet_v2,inception_v3
-import random,os
-import copy
-import torchvision
-
-class Model_2(nn.Module):
-    def __init__(self, no_grad=True, infer_batchsize=256, if_classifier=False, method_id=0):
-        super(Model_2, self).__init__()
+from torchvision.models import resnet18,resnet34,resnet50,resnext50_32x4d
+class Model_1(nn.Module):
+    def __init__(self, no_grad=True, infer_batchsize=256, method_id=0, thres=99.7):
+        super(Model_1, self).__init__()
         self.no_grad = no_grad
         self.infer_batchsize = infer_batchsize
-        self.method_id  = method_id
-        
-        """vit_h_14"""
-        # if self.no_grad == True:
-        #     regnet = regnet_y_128gf()
-        # else:
-        #     regnet = regnet_y_128gf(weights = 'IMAGENET1K_SWAG_E2E_V1')
-        # regnet.fc = nn.Sequential()
-        # self.backbone = regnet
-        # self.regression = nn.Linear(7392,2)
-        # self.if_classifier = if_classifier
-        ## self.classifier = nn.Linear(7392,18)
-
-
+        self.method_id = method_id
+ 
         if method_id == 0:
-            self.net4 = Model_2(no_grad=True, method_id=4)
-            self.net6 = Model_2(no_grad=True, method_id=6)
-            self.net7 = Model_2(no_grad=True, method_id=7)
-            self.net25 = Model_2(no_grad=True, method_id=25)
-            self.net35 = Model_2(no_grad=True, method_id=25)
-            self.thres = 98.8
-            self.weights = torch.zeros(100)
-            self.weights[4] = 98.87996029798 - self.thres
-            self.weights[6] = 98.85448660916 - self.thres
-            self.weights[7] = 98.87380283811 - self.thres
-            self.weights[25] = 98.90117509282 - self.thres
-            self.weights[35] = 98.88552945850 - self.thres
+            import math
+            self.net1 = Model_1(no_grad=True, method_id=25)
+            # self.net2 = Model_1(no_grad=True, method_id=5)
+            # self.net3 = Model_1(no_grad=True, method_id=24)
+            self.net4 = Model_1(no_grad=True, method_id=25)
+            self.net5 = Model_1(no_grad=True, method_id=25)
+            self.net6 = Model_1(no_grad=True, method_id=100)
+            self.net7 = Xm_1()
+            self.thres = thres
+            self.weights = torch.zeros(1000)
+            self.weights[1] = 99.87898470447 + 99.89621302308 
+            self.weights[2] = 99.7609134932 + 99.768
+            self.weights[3] = 99.76148569599 + 99.75263203506
+            self.weights[4] = 99.86963232831 + 99.88154014585
+            self.weights[5] = 99.87672947488 + 99.89408065593
+            self.weights[6] = 99.85319069093 + 99.85319069093
+            self.weights[7] = 99.80228581482 + 99.80127056163
+            for i in range(1000):
+                if not hasattr(self, f'net{i}'):
+                    self.weights[i] = 0
+
+            self.weights = (self.weights - 2*self.thres)*(self.weights > 2*self.thres)
+
+            # 99.83723944491 + 99.83099084369,
+
             self.weights = self.weights/self.weights.sum()
-            self.if_classifier = if_classifier
-        if method_id == 1:
-            """efficientnet_b6"""
-            if self.no_grad == True:
-                efficientnet = efficientnet_b6()
-            else:
-                efficientnet = efficientnet_b6(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(2304,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)  
-        elif method_id == 2:
-            """efficientnet_b5"""
-            if self.no_grad == True:
-                efficientnet = efficientnet_b5()
-            else:
-                efficientnet = efficientnet_b5(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.4, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(2048,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 3:
+            print(f'######### self.weights.sum:{self.weights.sum()}')
+            assert math.isclose(self.weights.sum(), 1.0, rel_tol=1e-5)
+            weights_sum=0
+            for i in range(1000):
+                if hasattr(self, f'net{i}'):
+                    print(f'weight{i}:{self.weights[i]}')
+                    weights_sum = weights_sum + self.weights[i]
+            print(f'######### weights_sum:{weights_sum}')
+            assert math.isclose(weights_sum, 1.0, rel_tol=1e-5)
+        elif method_id == 3: # elif method_id == 8:
             """efficientnet_b4"""
             if self.no_grad == True:
                 efficientnet = efficientnet_b4()
             else:
                 efficientnet = efficientnet_b4(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.4, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1792,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 4:
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.4, inplace=True), nn.Linear(1792,2))
+
+        if method_id == 4:# if method_id == 3:
             """efficientnet_b3"""
             if self.no_grad == True:
                 efficientnet = efficientnet_b3()
             else:
                 efficientnet = efficientnet_b3(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1536,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 5:
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True), nn.Linear(1536,2))
+
+        elif method_id == 5: # elif method_id == 4:
             """efficientnet_b2"""
             if self.no_grad == True:
                 efficientnet = efficientnet_b2()
             else:
                 efficientnet = efficientnet_b2(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1408,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 6:
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True), nn.Linear(1408,2))
+
+        elif method_id == 6: #elif method_id == 7:
             """efficientnet_b1"""
             if self.no_grad == True:
                 efficientnet = efficientnet_b1()
             else:
                 efficientnet = efficientnet_b1(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1280,2)
-            self.if_classifier = if_classifier
-            #self.classifier = nn.Linear(2304,18)
-        elif method_id == 7:
-            """resnet34"""
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True), nn.Linear(1280,2))
+
+        elif method_id == 7: # elif method_id == 2:
+            """resnet 34"""
             if self.no_grad == True:
-                resnet = resnet34(pretrained=False,)
+                efficientnet = resnet34(pretrained=False,)
             else:
-                # resnet = resnet34(pretrained=True,)
-                resnet = resnet34(weights='DEFAULT',)
-            resnet.fc = nn.Sequential()
-            self.backbone = resnet
-            self.regression = nn.Linear(512,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(512,18)
-        elif method_id == 8:
-            """resnext50_32x4d"""
-            if self.no_grad == True:
-                resnet = resnext50_32x4d(pretrained=False,)
-            else:
-                from torchvision.models import ResNeXt50_32X4D_Weights  
-                resnet = resnext50_32x4d(weights = ResNeXt50_32X4D_Weights.DEFAULT)
-            resnet.fc = nn.Sequential()
-            self.backbone = resnet
-            self.regression = nn.Linear(2048,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2048,18)
-        elif method_id == 9:
+                efficientnet = resnet34(pretrained=True,)
+            # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+            efficientnet.fc = nn.Linear(512,2)
+
+        elif method_id == 9:# elif method_id == 9:
             """mnasnet1_3"""
+            from torchvision.models import mnasnet1_3
             if self.no_grad == True:
                 efficientnet = mnasnet1_3()
             else:
                 efficientnet = mnasnet1_3(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1280,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 10:
-            """shufflenet_v2_x2_0"""
-            if self.no_grad == True:
-                efficientnet = shufflenet_v2_x2_0()
-            else:
-                efficientnet = shufflenet_v2_x2_0(weights = 'DEFAULT')
-            efficientnet.fc = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(2048,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 11:
-            """densenet201"""
-            if self.no_grad == True:
-                efficientnet = densenet201()
-            else:
-                efficientnet = densenet201(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1920,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 12:
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True), nn.Linear(1280,2))
+        elif method_id == 12: # elif method_id == 6:
             """mobilenet_v2"""
+            from torchvision.models import mobilenet_v2
             if self.no_grad == True:
                 efficientnet = mobilenet_v2()
             else:
                 efficientnet = mobilenet_v2(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=False))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1280,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 13:
-            """convnext_small"""
-            from torchvision.models import convnext_small
-            if self.no_grad == True:
-                efficientnet = convnext_small()
-            else:
-                efficientnet = convnext_small(weights = 'DEFAULT')
-            efficientnet.classifier[2] = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(768,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 14:
-            """regnet_y_128gf"""
-            from torchvision.models import regnet_y_128gf,RegNet_Y_128GF_Weights
-            if self.no_grad == True:
-                efficientnet = regnet_y_128gf()
-            else:
-                efficientnet = regnet_y_128gf(weights = RegNet_Y_128GF_Weights.IMAGENET1K_SWAG_E2E_V1)
-            efficientnet.fc = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(7392,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=False), nn.Linear(1280,2))
 
-       
-        elif method_id == 15:
-            """ efficientnet_v2_s"""
-            from torchvision.models import efficientnet_v2_s
-            if self.no_grad == True:
-                efficientnet = efficientnet_v2_s()
-            else:
-                efficientnet = efficientnet_v2_s(weights = 'DEFAULT')
-            efficientnet.classifier[1] = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1280,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 16:
-            """efficientnet_v2_m"""
-            from torchvision.models import efficientnet_v2_m
-            if self.no_grad == True:
-                efficientnet = efficientnet_v2_m()
-            else:
-                efficientnet = efficientnet_v2_m(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.3, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1280,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 17:
-            """efficientnet_v2_l"""
-            from torchvision.models import efficientnet_v2_l
-            if self.no_grad == True:
-                efficientnet = efficientnet_v2_l()
-            else:
-                efficientnet = efficientnet_v2_l(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.4, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1280,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-            
-        elif method_id == 18:
-            """efficientnet_b7"""
-            from torchvision.models import efficientnet_b7
-            if self.no_grad == True:
-                efficientnet = efficientnet_b7()
-            else:
-                efficientnet = efficientnet_b7(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(2560,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        
-        elif method_id == 19:
-            """mobilenet_v3_large"""
-            from torchvision.models import mobilenet_v3_large, MobileNet_V3_Large_Weights
-            if self.no_grad == True:
-                efficientnet = mobilenet_v3_large()
-            else:
-                efficientnet = mobilenet_v3_large(weights = MobileNet_V3_Large_Weights)
-            efficientnet.classifier[3] = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1280,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 20:
-            """regnet_y_3_2gf"""
-            from torchvision.models import regnet_y_3_2gf, RegNet_Y_3_2GF_Weights
-            if self.no_grad == True:
-                efficientnet = regnet_y_3_2gf()
-            else:
-                efficientnet = regnet_y_3_2gf(weights = RegNet_Y_3_2GF_Weights)
-            efficientnet.fc = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1512,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-    
-        elif method_id == 21:
-            """wide_resnet50_2"""
-            from torchvision.models import wide_resnet50_2, Wide_ResNet50_2_Weights
-            if self.no_grad == True:
-                efficientnet = wide_resnet50_2()
-            else:
-                efficientnet = wide_resnet50_2(weights = Wide_ResNet50_2_Weights)
-            efficientnet.fc = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(2048,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
-        elif method_id == 22:
-            """resnet50"""
-            from torchvision.models import resnet50, ResNet50_Weights
-            if self.no_grad == True:
-                efficientnet = resnet50()
-            else:
-                efficientnet = resnet50(weights = ResNet50_Weights)
-            efficientnet.fc = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(2048,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18) 
-        elif method_id == 23:
-            """resnet152"""
-            from torchvision.models import resnet152, ResNet152_Weights
-            if self.no_grad == True:
-                efficientnet = resnet152()
-            else:
-                efficientnet = resnet152(weights = ResNet152_Weights)
-            efficientnet.fc = nn.Sequential()
-            self.backbone = efficientnet
-            self.regression = nn.Linear(2048,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18) 
-        elif method_id == 24:
+        elif method_id == 24: # elif method_id == 5:
             """efficientnet_b0"""
             if self.no_grad == True:
                 efficientnet = efficientnet_b0()
             else:
                 efficientnet = efficientnet_b0(weights = 'DEFAULT')
-            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True))
-            self.backbone = efficientnet
-            self.regression = nn.Linear(1280,2)
-            self.if_classifier = if_classifier
-            #self.classifier = nn.Linear(2304,18)
-        elif method_id == 25:
-            """resnet18"""
+            efficientnet.classifier = nn.Sequential(nn.Dropout(p=0.2, inplace=True), nn.Linear(1280,2))
+
+        elif method_id == 25: # elif method_id == 1:
+            """resnet 18"""
+            if self.no_grad == True:
+                efficientnet = resnet18(pretrained=False,)
+            else:
+                efficientnet = resnet18(pretrained=True,)
+            # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+            efficientnet.fc = nn.Linear(512,2)
+
+        elif method_id == 100:
+            """resnet 18 例外"""
             if self.no_grad == True:
                 resnet = resnet18(pretrained=False,)
             else:
-                # resnet = resnet34(pretrained=True,)
-                resnet = resnet18(weights='DEFAULT',)
-            resnet.fc = nn.Sequential()
-            self.backbone = resnet
-            self.regression = nn.Linear(512,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(512,18)
-        elif method_id == 101:
-            from torchvision.models import regnet_x_8gf,RegNet_X_8GF_Weights
-            """regnet_x_8gf"""
-            if self.no_grad == True:
-                regnet_x_8gf_net = regnet_x_8gf(pretrained=False)
-            else:
-                regnet_x_8gf_net = regnet_x_8gf(weights=RegNet_X_8GF_Weights.IMAGENET1K_V2)
-            regnet_x_8gf_net.fc = nn.Sequential()
-            self.backbone = regnet_x_8gf_net
-            self.regression = nn.Linear(1920,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
+                resnet = resnet18(pretrained=True,)
+            # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
+            resnet.fc = nn.Linear(512,2)
+            self.net = nn.Sequential(
+                # nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),
+                resnet
+                )
 
-        elif method_id == 102:
-            """resnet101"""
-            from torchvision.models import resnet101,ResNet101_Weights
-            if self.no_grad == True:
-                resnet = resnet101(pretrained=False,)
-            else:
-                resnet = resnet101(weights = ResNet101_Weights.IMAGENET1K_V2)
-            resnet.fc = nn.Sequential()
-            self.backbone = resnet
-            self.regression = nn.Linear(2048,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2048,18)
-
-        elif method_id == 103:
-            from torchvision.models import regnet_x_16gf,RegNet_X_16GF_Weights
-            """regnet_x_16gf"""
-            if self.no_grad == True:
-                regnet_x_8gf_net = regnet_x_16gf(pretrained=False)
-            else:
-                regnet_x_8gf_net = regnet_x_16gf(weights=RegNet_X_16GF_Weights.IMAGENET1K_V2)
-            regnet_x_8gf_net.fc = nn.Sequential()
-            self.backbone = regnet_x_8gf_net
-            self.regression = nn.Linear(2048,2)
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(2304,18)
+        if self.method_id != 0 and self.method_id != 100:
+            self.net = efficientnet
+        
 
 
 
-
-
-            # resnet.fc = nn.Sequential()
-            # self.backbone = resnet
-            # self.regression = nn.Linear(512,2)
-
-
-            self.if_classifier = if_classifier
-            # self.classifier = nn.Linear(512,18)
 
     def _forward(self, x, data_format='channels_last'):
+
         if self.method_id == 0:
             out = 0
-            for i in range(1,50):
+            # num_net = 0
+            for i in range(1,1000):
                 if hasattr(self, f'net{i}'):
                     out = out + getattr(self, f'net{i}')(x) * self.weights[i]
-            return(out)
+                    # num_net = num_net + 1
+            return out
+
         else:
+            """方式1：设为0"""
+            # x[:,:,4:20,:]=0
+            # x[:,:,24:48,:]=0
+            # x[:,:,52:68,:]=0
+            # x.shape ([bs, 256, 72, 2])
+            """方式2：去掉不用通道"""
+            # x = torch.cat((x[:,:,0:4,:], x[:,:,20:24,:], x[:,:,48:52,:], x[:,:,68:,:]), dim=2)
+            
             """方式1：幅值复制三份"""
             # x = x.norm(dim=-1)
             # x = x.unsqueeze(1)
@@ -4356,169 +4182,13 @@ class Model_2(nn.Module):
             x_norm = x_norm.unsqueeze(3)
             x = torch.cat((x,x_norm),dim=3)
             x = x.permute(0,3,1,2)
-            
-            if self.if_classifier == True:
-                return self.regression(self.backbone(x)), self.classifier(self.backbone(x))
-            else:
-                return  self.regression(self.backbone(x))
-    def _tta_forward(self, x, num=5):
-        out = self._forward(x)
-        aug_times = 10
-        x_aug = self.data_aug(x, aug_times=aug_times)
-        for i in range(1, aug_times):
-            out = out + self._forward(x_aug[i*(x.shape[0]):(i+1)*(x.shape[0])])
-        out = out / aug_times
-        return out
+            return self.net(x)
 
     def forward(self, x, data_format='channels_last'):
         ba = [i for i in self.state_dict().items()]
         if ba[-1][-1].dtype is not torch.float32:
             self.float()
-        if self.no_grad == True and self.if_classifier == False:
-            self.eval()
-           
-            with torch.no_grad():
-                _out = []
-                for i in range(0,x.shape[0],self.infer_batchsize):
-                    if i+self.infer_batchsize <= x.shape[0]:
-                        batch_out = self._forward(x[i:i+self.infer_batchsize])
-                    else:
-                        batch_out = self._forward(x[i:])
-                    _out.append(batch_out)
-                out = torch.cat(_out, axis=0)
-        else :
-             out = self._forward(x)
-        
-        return out
-    def data_aug(self, x, aug_times=10, y=None):
-        # TODO 1、mask掉时间维度，2、mask数量随机
-        """固定mask掉一半的基站"""
-        # x.shape = bs,256,72,2
-        x_aug = copy.deepcopy(x)
-        if y is not None:
-            y_aug = copy.deepcopy(y)
-        for j in range(aug_times - 1):
-            x_copy = copy.deepcopy(x)
-            for i in range(x.shape[0]):
-                delete_num  = int( x.shape[2] / 4 / 2 )
-                base_mask = np.random.choice(18,delete_num,replace=False)
-                mask = np.concatenate((base_mask*4, base_mask*4+1, base_mask*4+2, base_mask*4+3))
-                x_copy[i,:,mask,:] = 0
-            x_aug = torch.cat((x_aug, x_copy), axis = 0)
-            if y is not None:
-                y_aug = torch.cat((y_aug, y), axis = 0)
-        if y is not None:
-            return x_aug, y_aug 
-        else:
-            return x_aug
-
-class Model_2_18(nn.Module):
-    def __init__(self, no_grad=True, infer_batchsize=256, if_classifier=False):
-        super(Model_2_18, self).__init__()
-        self.no_grad = no_grad
-        self.infer_batchsize = infer_batchsize
         if self.no_grad == True:
-            resnet = resnet18(pretrained=False,)
-        else:
-            resnet = resnet18(pretrained=True,)
-        # resnet.fc = nn.Sequential(nn.Dropout(p=0.05), torch.nn.Linear(512,2))
-        # if classifier == True:
-        #     out_len = 3
-        # else:
-        #     out_len = 2
-        resnet.fc = nn.Sequential()
-        self.backbone = resnet
-        self.regression = nn.Linear(512,2)
-        # self.classifier = nn.Linear(512,18)
-        # self.if_classifier = if_classifier
-
-
-
-    def _forward(self, x, data_format='channels_last'):
-        
-        """方式1：幅值复制三份"""
-        # x = x.norm(dim=-1)
-        # x = x.unsqueeze(1)
-        # x = x.repeat(1,3,1,1)
-        """方式2：实部虚部幅值"""
-        x_norm = x.norm(dim=-1)
-        x_norm = x_norm.unsqueeze(3)
-        x = torch.cat((x,x_norm),dim=3)
-        x = x.permute(0,3,1,2)
-        
-        if self.if_classifier == True:
-            return self.regression(self.backbone(x)), self.classifier(self.backbone(x))
-        else:
-            return  self.regression(self.backbone(x))
- 
-
-    def forward(self, x, data_format='channels_last'):
-        if self.no_grad == True and self.if_classifier == False:
-            self.eval()
-           
-            with torch.no_grad():
-                _out = []
-                for i in range(0,x.shape[0],self.infer_batchsize):
-                    if i+self.infer_batchsize <= x.shape[0]:
-                        batch_out = self._forward(x[i:i+self.infer_batchsize])
-                    else:
-                        batch_out = self._forward(x[i:])
-                    _out.append(batch_out)
-                out = torch.cat(_out, axis=0)
-        else :
-             out = self._forward(x)
-        
-        return out
-
-class Helpnet(nn.Module):
-    def __init__(self, no_grad=True, infer_batchsize=256, if_classifier=False):
-        super(Helpnet, self).__init__()
-        self.no_grad = no_grad
-        self.infer_batchsize = infer_batchsize
-    
-        """efficientnet_b6"""
-        # from torchvision.models import efficientnet_b6
-        if self.no_grad == True:
-            helpnet = efficientnet_b6()
-        else:
-            helpnet = efficientnet_b6(weights = 'DEFAULT')
-        helpnet.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True))
-        self.backbone = helpnet
-        self.regression = nn.Linear(2304,2)
-        self.if_classifier = if_classifier
-        self.classifier = nn.Linear(2304,18)
-        """efficientnet_v2_l"""
-        # from torchvision.models import efficientnet_v2_l
-        # if self.no_grad == True:
-        #     helpnet = efficientnet_v2_l()
-        # else:
-        #     helpnet = efficientnet_v2_l(weights = 'DEFAULT')
-        # helpnet.classifier = nn.Sequential(nn.Dropout(p=0.4, inplace=True))
-        # self.backbone = helpnet
-        # self.regression = nn.Linear(1280,2)
-        # self.if_classifier = if_classifier
-        # #self.classifier = nn.Linear(1280,18)
-
-
-    def _forward(self, x, data_format='channels_last'):
-        
-        """方式1：幅值复制三份"""
-        # x = x.norm(dim=-1)
-        # x = x.unsqueeze(1)
-        # x = x.repeat(1,3,1,1)
-        """方式2：实部虚部幅值"""
-        x_norm = x.norm(dim=-1)
-        x_norm = x_norm.unsqueeze(3)
-        x = torch.cat((x,x_norm),dim=3)
-        x = x.permute(0,3,1,2)
-        
-        if self.if_classifier == True:
-            return self.regression(self.backbone(x)), self.classifier(self.backbone(x))
-        else:
-            return  self.regression(self.backbone(x))
-
-    def forward(self, x, data_format='channels_last'):
-        if self.no_grad == True and self.if_classifier == False:
             self.eval()
            
             with torch.no_grad():
@@ -4536,6 +4206,11 @@ class Helpnet(nn.Module):
                 out[:,0][out[:,0]<0] = 0.0
                 out[:,1][out[:,1]>60.0] = 60.0
                 out[:,1][out[:,1]<0] = 0.0
-        else :
-             out = self._forward(x)      
+        else:
+            out = self._forward(x)
+        
         return out
+
+
+
+

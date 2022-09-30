@@ -1,11 +1,12 @@
 #--coding: utf-8--
+"""
+两个模型一起训练的半监督策略。
+A给无标签数据打标签,训B;
+B再给无标签数据打标签,训A;
+不断循环。
 
-# TODO
-# seed随机数种子的选择可能挺有用
-# 虚拟标签的应该在那个120，60的范围内
-# 转化为分类问题
-# 数据归一化
-# BN层
+实际效果很一般，
+"""
 from email.policy import default
 import h5py
 import numpy as np
@@ -43,8 +44,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     """注意评测设备只有一块gpu"""
     DEVICE=torch.device(f"cuda:{args.cuda}")
-    # BATCH_SIZE = args.bs
-    # LEARNING_RATE = args.lr
     split_ratio = args.sr
     """保存好要提交的文件、训练代码、训练日志"""
     id_path = os.path.join('submit',str(args.submit_id))
@@ -113,10 +112,6 @@ if __name__ == '__main__':
     """分出训练集"""
     trainX_labeled = trainX_labeled[int(split_ratio*len(trainX_labeled)):]
     trainY_labeled = trainY_labeled[int(split_ratio*len(trainY_labeled)):]
-    """训练集数据扩增"""
-    # trainX_labeled, trainY_labeled = Model_2().data_aug(x = trainX_labeled, y = trainY_labeled)
-    """测试集数据扩增"""
-    # test_trainX_labeled, test_trainY_labeled = Model_2().data_aug(x = test_trainX_labeled, y = test_trainY_labeled)
     train_dataset = MyDataset(trainX_labeled,trainY_labeled,split_ratio=0)
     train_loader = DataLoader(dataset=train_dataset,
                                                batch_size=args.bs,
@@ -125,18 +120,6 @@ if __name__ == '__main__':
     test_loader = DataLoader(dataset=test_dataset,
                                                batch_size=args.bs,
                                                shuffle=True)  # shuffle 标识要打乱顺序
-    
-    # train_dataset = MyDataset(trainX_labeled,trainY_labeled,split_ratio)
-    # train_loader = DataLoader(dataset=train_dataset,
-    #                                            batch_size=BATCH_SIZE,
-    #                                            shuffle=True)  # shuffle 标识要打乱顺序
-    # test_dataset = MyTestset(trainX_labeled,trainY_labeled,split_ratio)
-    # test_loader = DataLoader(dataset=test_dataset,
-    #                                            batch_size=BATCH_SIZE,
-    #                                            shuffle=True)  # shuffle 标识要打乱顺序
-
-
-
 
 
     """加载模型"""
@@ -147,20 +130,7 @@ if __name__ == '__main__':
     logging.info(modelA)
     logging.info(modelB)
     
-    
-    
-
     test_avg_min = 10000;  
-
-   
-
-    
-
-    # model_path = 'submit/47-1/submit_pt/modelSubmit_2.pth'
-    # # model.load_state_dict(torch.load(model_path, map_loaction = DEVICE))
-    # model.load_state_dict(torch.load(model_path))
-    # model = model.to(DEVICE)
-    # model_18 = model.to(DEVICE)
 
     """train A"""
     logging.info("###################### train A ##################################")

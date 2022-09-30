@@ -167,3 +167,103 @@ def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0, if_ada
     Y_pselabeled_ave[:,1][Y_pselabeled_ave[:,1]>60.0] = 60.0
     Y_pselabeled_ave[:,1][Y_pselabeled_ave[:,1]<0] = 0.0
     return  Y_pselabeled_ave
+
+"""下面两个函数是想获得模型集成的最佳模型集成权重"""
+def get_thres_by_large(args, X, *models):
+    X = torch.tensor(X, dtype=torch.float)
+    weights = torch.ones(len(models), dtype=torch.float)
+    
+    """获取最佳的权重阈值"""
+    weight_thres_best = 98.0
+    test_ave_score_best = 0.0
+    
+    _, _, _, testX, testY = get_900(k=0)
+    testX = testX.to(torch.device(f"cuda:{args.cuda}"))
+    y_test_s = predict(args, testX, *models)
+    score_s = [score(y_test_s[i], testY) for i in range(len(models))]
+    logging.info(f"所有{len(models)}个子模型，各自的验证分数分别为:\n{score_s}")
+    for weight_thres_pre in np.arange(98.0,99.1,0.01): 
+        for weight_add in np.arange(0,4.0,0.01):
+            logging.info(f"########################################################################")
+            logging.info(f"权重阈值为:  {weight_thres_pre}  时：")
+            logging.info(f"权重附加值为:    {weight_add}    时：")
+            weights_pre = (score_s > weight_thres_pre)*(score_s - weight_thres_pre) + weight_add
+            weights_pre = [round(weight_each, 4) for weight_each in weights_pre]
+            logging.info(f"权重为:  {weights_pre}")
+            y_test_avg = 0
+            for i in range(len(models)):
+                y_test_avg = y_test_avg + weights_pre[i]*y_test_s[i]
+            y_test_avg = y_test_avg/sum(weights_pre)
+            test_ave_score = score(y_test_avg, testY)
+            logging.info(f"模型平均的测试分数为:    {test_ave_score}")
+            if test_ave_score > test_ave_score_best:
+                test_ave_score_best = test_ave_score
+                weight_thres_best = weight_thres_pre
+                weights = weights_pre
+                logging.info(f"***** 获得最佳权重 ******")
+                logging.info(f"最佳模型平均的测试分数为:    {test_ave_score_best}")
+    logging.info(f"######################### ******************************* #####################################")
+    logging.info(f"######################### 最终 #####################################")
+    logging.info(f"最佳权重阈值为:  {weight_thres_best}")
+    logging.info(f"最佳权重为:  {weights}")
+    logging.info(f"最佳模型平均的测试分数为:    {test_ave_score_best}")
+    return  weights, test_ave_score_best
+
+def get_thres(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0, if_adaptive_weight_thres=True, *models):
+    def get_weight(model, weight_thres):
+        _, _, _, testX, testY = get_900(k=0)
+        # Y = label(args, testX, 1000, False, weight_thres, model)
+        testX = testX.to(torch.device(f"cuda:{args.cuda}"))
+        score = test(args,testX,testY,None, model)
+        logging.info(f"weak model score: {score}")
+        if score-weight_thres<=0:
+            return 0.0
+        else:
+            return score-weight_thres
+    X = torch.tensor(X, dtype=torch.float)
+    # X_pselabeled_ave = 0
+    Y_pselabeled_ave = 0
+    weights = torch.ones(len(models), dtype=torch.float)
+    
+    """获取最佳的权重阈值"""
+    weight_thres_best = 98.0
+    test_ave_score_best = 0.0
+    if if_adaptive_weight_thres == True and len(models)>1: 
+        _, _, _, testX, testY = get_900(k=0)
+        testX = testX.to(torch.device(f"cuda:{args.cuda}"))
+        y_test_s = predict(args, testX, *models)
+        score_s = [score(y_test_s[i], testY) for i in range(len(models))]
+        logging.info(f"所有{len(models)}个子模型，各自的验证分数分别为:\n{score_s}")
+        # weights_by_lagre = torch.tensor(score_s) -98
+        # weights_by_lagre = weights_by_lagre/weights_by_lagre.sum()
+        
+        weights_by_lagre, test_ave_score_best = get_thres_by_large(args, X, *models)
+        """在利用get_thres_by_large()获得模型集成权重之后,外加随机数希望获得更好的模型权重"""
+        weights_by_lagre = torch.tensor(weights_by_lagre)
+        weights_by_lagre = weights_by_lagre/weights_by_lagre.sum()
+        logging.info(f"根据得分获得的初始权重为:  {weights_by_lagre}")
+        while(1):
+            weights_pre = torch.rand(len(models), )-0.5
+            # weights_pre = weights_pre/weights_pre.sum()
+            weights_pre = weights_pre + weights_by_lagre
+            weights_pre = weights_pre*(weights_pre>0)
+            y_test_avg = 0
+            for i in range(len(models)):
+                y_test_avg = y_test_avg + weights_pre[i]*y_test_s[i]
+            y_test_avg = y_test_avg/sum(weights_pre)
+            test_ave_score = score(y_test_avg, testY)
+            # logging.info(f"模型平均的测试分数为:    {test_ave_score}")
+            if test_ave_score > test_ave_score_best:
+                test_ave_score_best = test_ave_score
+                # weight_thres_best = weight_thres_pre
+                weights = weights_pre
+                logging.info(f"***** 获得最佳权重 ******")
+                logging.info(f"权重为:  {weights_pre}")
+                logging.info(f"最佳模型平均的测试分数为:    {test_ave_score_best}")
+        logging.info(f"######################### ******************************* #####################################")
+        logging.info(f"######################### 最终 #####################################")
+        # logging.info(f"最佳权重阈值为:  {weight_thres_best}")
+        logging.info(f"最佳权重为:  {weights}")
+        logging.info(f"最佳模型平均的测试分数为:    {test_ave_score_best}")
+
+    

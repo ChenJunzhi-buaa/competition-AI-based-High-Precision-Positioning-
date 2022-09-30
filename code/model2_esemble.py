@@ -1,3 +1,7 @@
+#--coding: utf-8--
+"""
+model2的模型集成
+"""
 from modelDesign_2 import Model_2
 import torch
 import os
@@ -14,20 +18,31 @@ ckpts[6] = torch.load('/data/cjz/location/submit/59-6/submit_pt/modelSubmit_2.pt
 ckpts[7] = torch.load('/data/cjz/location/submit/59-7/submit_pt/modelSubmit_2.pth')
 ckpts[25] = torch.load('/data/cjz/location/submit/59-25-531epochs/submit_pt/modelSubmit_2.pth')
 ckpts[35] = torch.load('/data/cjz/location/submit/59-25-25-25-25-25-25_/modelSubmit_2_1600epochs.pth')
-for i in range(100):
-    if ckpts[i] is not 1:
+ckpts[36] = torch.load('/data/cjz/location/submit/65-6/modelSubmit_2_2000epochs.pth')
+
+ckpts[41] = torch.load('/data/cjz/location/submit/58-4/submit_pt/modelSubmit_2.pth')
+ckpts[42] = torch.load('/data/cjz/location/submit/58-6/submit_pt/modelSubmit_2.pth')
+ckpts[43] = torch.load('/data/cjz/location/submit/58-12/submit_pt/modelSubmit_2.pth')
+ckpts[44] = torch.load('/data/cjz/location/submit/62-4/submit_pt/modelSubmit_2.pth')
+ckpts[45] = torch.load('/data/cjz/location/submit/62-5/submit_pt/modelSubmit_2.pth')
+ckpts[46] = torch.load('/data/cjz/location/submit/62-25/submit_pt/modelSubmit_2.pth')
+
+ckpts[51] = torch.load('/data/cjz/location/submit/65-4/modelSubmit_2_2600epochs.pth')
+ckpts[52] = torch.load('/data/cjz/location/submit/65-6/modelSubmit_2_2800epochs.pth')
+ckpts[53] = torch.load('/data/cjz/location/submit/65-7/modelSubmit_2_2000epochs.pth')
+ckpts[54] = torch.load('/data/cjz/location/submit/65-9/modelSubmit_2_3600epochs.pth')
+ckpts[55] = torch.load('/data/cjz/location/submit/65-12/modelSubmit_2_1800epochs.pth')
+ckpts[56] = torch.load('/data/cjz/location/submit/65-25/modelSubmit_2_6400epochs.pth')
+
+for i in range(1000):
+    if hasattr(ese, f'net{i}'):# if ckpts[i] is not 1:
+        print(f'已用子网络net{i}')
         ckpt = ckpts[i]
         for key in list(ckpt.keys()):
             new_key = f'net{i}.' + key 
             state_dict[new_key] = ckpt[key]
 
-# for key in list(ckpt2.keys()):
-#     new_key = 'net2.' + key 
-#     state_dict[new_key] = ckpt2[key]
-# for key in list(ckpt3.keys()):
-#     new_key = 'net3.' + key 
-#     state_dict[new_key] = ckpt3[key]
-# ckpt2 ...
+
 ese.load_state_dict(state_dict)
 
 import argparse
@@ -50,30 +65,6 @@ copyfile('/data/cjz/location/pytorch_Template/modelDesign_2.py', os.path.join(mo
 copyfile(__file__, os.path.join(model_save, str(i), 'model2_esemble.py'))
 
 
-
-
-
-
-
-
-
-
-# model1s = []
-# model = Model_1(method_id=1)
-# model.load_state_dict(ckpt1)
-# model1s.append(model)
-
-# model = Model_1(method_id=4)
-# model.load_state_dict(ckpt2)
-# model1s.append(model)
-
-# model = Model_1(method_id=5)
-# model.load_state_dict(ckpt3)
-# model1s.append(model)
-
-# model = Model_1(method_id=1)
-# model.load_state_dict(ckpt4)
-# model1s.append(model)
 
 # 集成模型##
 model2 = Model_2(method_id=0)

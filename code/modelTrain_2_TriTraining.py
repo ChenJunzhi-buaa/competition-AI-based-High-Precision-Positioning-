@@ -1,6 +1,12 @@
-# TODO
-# psedo label应该不断更新
-# 网络变小
+#--coding: utf-8--
+"""
+三个模型互相帮助训练的半监督方法。
+modelA和modelB给无标签数据打标签,混合数据去训modelC,
+modelB和modelC给无标签数据打标签,混合数据去训modelA,
+modelA和modelC给无标签数据打标签,混合数据去训modelB,
+如此不断循环
+
+"""
 import random
 
 import h5py
@@ -237,41 +243,6 @@ class SSL():
         pseudo_label = ((output1 + output2) / 2.0)[diff.sort()[1][:int(len(diff) * percentage)]]
         return pseudo_label_data, pseudo_label
 
-    # def get_new_set(self,thres=1):
-    #     # 训练F1
-    #     logging.info("训练F1   ##################################")
-
-    # logging.info("训练model0   ##################################")
-    # self.model0 = self.train(self.labelset_X, self.labelset_Y,TOTAL_EPOCHS=1)
-    # self.split_unlabelset()
-    # Y1 = self.label(self.unlabelset_X1, self.model0)
-    # Y2 = self.label(self.unlabelset_X2, self.model0)
-    # X1_concat = Model_2()
-    # Y1_concat = torch.concat((self.labelset_Y, Y1), dim = 0)
-    # X2_concat = torch.concat((self.labelset_X, self.unlabelset_X2), dim=0)
-    # Y2_concat = torch.concat((self.labelset_Y, Y2), dim=0)
-    # logging.info("训练model1   ##################################")
-    # self.model1 = self.train(X1_concat,Y1_concat,TOTAL_EPOCHS=1)
-    # logging.info("训练model2   ###################################")
-    # self.model2 = self.train(X2_concat,Y2_concat,TOTAL_EPOCHS=1)
-    # Y3_model1 = self.label(self.unlabelset_X3, self.model1)
-    # Y3_model2 = self.label(self.unlabelset_X3, self.model2)
-    # diff = (Y3_model1 - Y3_model2).square().sum(dim=1).sqrt()
-    # """方式1:两个模型预测足够接近的样本才打上标签"""
-    # # diff_flag = diff < thres
-    # # Labeled_X3 = self.unlabelset_X3[diff_flag]
-    # # Unlabeled_X3 = self.unlabelset_X3[diff_flag.logical_not()]
-    # # Labeled_Y3 = ((Y3_model1 + Y3_model2)/2.0)[diff_flag]
-    # """方式2:两个模型预测最接近的前一半的样本打上标签"""
-    # Labeled_X3 = self.unlabelset_X3[diff.sort()[1][:len(diff)//2]]
-    # Unlabeled_X3 = self.unlabelset_X3[diff.sort()[1][len(diff)//2:]]
-    # Labeled_Y3 = ((Y3_model1 + Y3_model2)/2.0)[diff.sort()[1][:len(diff)//2]]
-    #
-    # self.labelset_X = torch.concat((self.labelset_X,Labeled_X3), dim=0)
-    # self.labelset_Y = torch.concat((self.labelset_Y,Labeled_Y3), dim=0)
-    # self.unlabelset_X = torch.concat((self.unlabelset_X1, self.unlabelset_X2, Unlabeled_X3), dim=0)
-    # if len(self.unlabelset_left) > 0:
-    #     self.unlabelset_X = torch.concat((self.unlabelset_X, self.unlabelset_left), dim=0)
 
 
 if __name__ == '__main__':

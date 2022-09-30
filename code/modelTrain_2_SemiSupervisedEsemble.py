@@ -1,11 +1,14 @@
 #--coding: utf-8--
 
-# TODO
-# seed随机数种子的选择可能挺有用
-# 虚拟标签的应该在那个120，60的范围内
-# 转化为分类问题
-# 数据归一化
-# BN层
+"""
+利用好多个已经训好的model2模型,一起给无标签数据打标签，
+再用混合数据训一个子模型，
+由于无标签数据很多，无标签数据的虚拟标签体现的是各个子模型集成的结果，
+因此实际上效果就和这些子模型的模型集成差不多。
+"""
+
+
+
 ########以下三行是解决p.map(f, [args])卡住问题的########
 #########参考https://divertingpan.github.io/post/pytorch_bizarre_error_debug/###############
 import os
@@ -92,15 +95,18 @@ if __name__ == '__main__':
 
 
         torch.save(Y_pselabeled_ave, os.path.join(id_path, 'Y_pselabeled_ave.pth'))
+        """下面这5行脚本也能释放一定的显存"""
+        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
-        torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
-    """完全释放显存的写法""" 
+
+
+    """为了不让打标签的脚本在打完标签之后继续占着显存，将这部分将本放进一个进程里""" 
     # 参考https://www.cnblogs.com/dechinphy/p/gc.html
     # f(args)
     with Pool(1) as p: 
