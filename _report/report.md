@@ -1,3 +1,5 @@
+竞赛记录https://datafountain.cn/competitions/575/ranking?isRedance=0&sch=1954
+
 # 涉及到的代码技巧
 | 涉及到的代码技巧 | 代码 |
 | ---- | ---- |
@@ -7,9 +9,6 @@
 | 4. 让一些脚本所占用的显存在运行完之后完全释放出来 | `modelTrain_2_SemiSupervisedEsemble.py` |
 | 5. 复制文件（夹） | `code/utils/args_codesave.py` |
 | 6. 设置完全可复现 | `code/utils/seed.py` |
-
-
-
 
 # 得分计算方法
 总分 = 100 - 场景1的距离 - 场景2的距离 - 场景3的距离
