@@ -2,21 +2,14 @@
 """
 只用1000个有标签数据训练模型2
 """
-import h5py
-import numpy as np
-
 import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, ConcatDataset
+from torch.utils.data import DataLoader
 from modelDesign_2 import Model_2
 import logging
 import os
 from shutil import copyfile
-import argparse
 from utils import *
 from datetime import datetime
-import copy
-from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
 
 
 if __name__ == '__main__':

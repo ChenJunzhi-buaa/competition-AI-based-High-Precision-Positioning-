@@ -3,18 +3,17 @@
 # 网络变小
 
 from pickle import NONE
-import h5py
 import numpy as np
 
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from modelDesign_2 import Model_2
 import logging
 from shutil import copyfile
 import argparse
 import os
-from utils import seed_everything,MyDataset,MyTestset
+from utils import seed_everything,MyDataset
 
 class SSL():
 

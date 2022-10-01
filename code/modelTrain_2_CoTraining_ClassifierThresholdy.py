@@ -7,13 +7,9 @@ B再给无标签数据打标签,训A;
 
 实际效果很一般，
 """
-from email.policy import default
-import h5py
 import numpy as np
-
 import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, ConcatDataset
+from torch.utils.data import  DataLoader
 from modelDesign_2 import Model_2, Model_2_18
 import logging
 import os
@@ -21,8 +17,6 @@ from shutil import copyfile
 import argparse
 from utils import *
 from datetime import datetime
-import copy
-from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
 
 if __name__ == '__main__':
     """命令行参数"""

@@ -2,16 +2,13 @@
 """
 model1的训练文件
 """
-from ast import arguments
 from utils import seed_everything
 
 from copy import copy
-import h5py
 import numpy as np
 
 import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from modelDesign_1 import Model_1
 import logging
 import argparse
@@ -20,7 +17,6 @@ from shutil import copyfile
 from datetime import datetime
 import copy
 from utils import train, MyDataset
-from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau,CosineAnnealingLR,CosineAnnealingWarmRestarts
 
 if __name__ == '__main__':
     """命令行参数"""

@@ -70,7 +70,7 @@ def get_class_label(trainY_labeled):
         trainY_class_labeled = np.concatenate((trainY_class_labeled, np.expand_dims(np.array([class_label[class_label_index1][class_label_index0]]), axis=0)),axis=0)
     return trainY_class_labeled
 
-
+"""好多个子模型一块给无标签数据打标签"""
 def label(args, X, BATCH_SIZE=1000, if_weight=False, weight_thres = 98.0, if_adaptive_weight_thres=True, *models):
     def get_weight(model, weight_thres):
         _, _, _, testX, testY = get_900(k=0)

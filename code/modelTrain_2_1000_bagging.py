@@ -2,21 +2,14 @@
 """
 model2 完全按照西瓜书的bagging写的代码
 """
-import h5py
-import numpy as np
 
 import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, ConcatDataset
+from torch.utils.data import  DataLoader
 from modelDesign_2 import Helpnet, Model_2
 import logging
-import os
-from shutil import copyfile
-import argparse
 from utils import *
 from datetime import datetime
 import copy
-from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
 
 
 if __name__ == '__main__':

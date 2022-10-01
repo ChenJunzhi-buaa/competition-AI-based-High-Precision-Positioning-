@@ -7,11 +7,7 @@ modelA和modelC给无标签数据打标签,混合数据去训modelB,
 如此不断循环
 
 """
-import random
-
-import h5py
 import numpy as np
-
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
